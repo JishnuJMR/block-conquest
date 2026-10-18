@@ -34,6 +34,10 @@ The address and chosen network are saved in your browser's local storage. No key
 
 Rows are 1–8 and columns A–H in the UI. A1 corresponds to contract `(0,0)`, B1 to `(1,0)`, and A2 to `(0,1)`. Arrow keys move keyboard focus between tiles; Enter or Space selects a tile. Owner colours are stable, and accessible tile labels also identify ownership and power.
 
+The enhanced UI adds a dismissible **How conquest works** guide, reopened with **How to play**. Each owner receives a `P1`, `P2`, … marker shared by their tiles and leaderboard entry. Labels persist per chain/contract in this browser, including owners who lose all their tiles, so score and account changes do not relabel players. The fixed palette repeats after ten owners; unique text markers still distinguish them. Labels are local conveniences, not on-chain identities. Clearing browser storage resets them.
+
+The selected tile shows reinforcement readiness and time until its next power loss in blocks. At power 1 it reports **Minimum power reached**. The attack preview shows both effective powers, the source's remaining power, and captured power 1; it refreshes or disappears as eligibility changes. A successful capture briefly highlights the captured tile after receipt confirmation. Reduced-motion preferences replace that animation with a static highlight. Leaderboard bars use all 64 tiles as their denominator, including unclaimed tiles.
+
 The transaction log distinguishes wallet confirmation, submitted/pending, success, and rejection/failure. Sepolia transactions link to the explorer. Changing accounts or networks clears the selection and invalidates old reads. If a wallet changes while a transaction is pending, check MetaMask for that transaction's result; an already broadcast move cannot be cancelled by changing the page.
 
 ## How live state works

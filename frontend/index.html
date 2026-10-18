@@ -33,19 +33,35 @@
         <section class="board-card" aria-labelledby="board-title">
           <div class="section-heading"><div><p class="eyebrow">THE BATTLEFIELD</p><h2 id="board-title">64 tiles. Endless possibilities.</h2></div><button id="refresh" class="icon-button" aria-label="Refresh board" title="Refresh board">↻</button></div>
           <p id="board-hint" class="board-hint">Connect your wallet to explore this board.</p>
+          <div class="guide-toggle"><span>Claim territory. Hold the most tiles.</span><button id="show-guide" class="text-button" aria-controls="conquest-guide" aria-expanded="true">How to play</button></div>
+          <section id="conquest-guide" class="conquest-guide" aria-label="How conquest works">
+            <div class="guide-heading"><strong>How conquest works</strong><button id="dismiss-guide" class="text-button" aria-label="Dismiss how to play">Got it</button></div>
+            <ol class="guide-steps">
+              <li><span class="step-number">01</span><div><strong>Claim</strong><p>Choose any empty tile. Start with 1 power.</p></div></li>
+              <li><span class="step-number">02</span><div><strong>Reinforce</strong><p>Add 1 power when ready. Power fades; ownership stays.</p></div></li>
+              <li><span class="step-number">03</span><div><strong>Capture</strong><p>Attack up, down, left or right. Your power must be greater.</p></div></li>
+            </ol>
+            <p class="guide-footnote">Your score is your tile count. Every move needs a MetaMask confirmation and test ETH for gas.</p>
+          </section>
           <div class="board-frame"><div class="axis-corner"></div><div class="column-labels" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span></div><div class="row-labels" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div id="grid" class="grid" role="group" aria-label="Block Conquest board"></div></div>
-          <div class="board-key"><span><i class="key empty"></i>Unclaimed</span><span><i class="key owned"></i>Owned · colour by player</span><span><i class="key selected"></i>Selected</span><span class="power-key">Number = effective power</span></div>
+          <div class="board-key"><span><i class="key empty"></i>Unclaimed</span><span><i class="key owned"></i>P1, P2… = owners</span><span><i class="key selected"></i>Selected</span><span class="power-key">Large number = effective power</span></div>
         </section>
         <aside class="side-panel">
           <section class="action-card" aria-labelledby="selection-title"><div class="section-heading"><p class="eyebrow">YOUR NEXT MOVE</p><span id="selection-coordinate" class="coordinate">—</span></div><h2 id="selection-title">Pick your territory.</h2><p id="selection-description">Select any tile to see its owner, power, and available moves.</p>
-            <dl id="tile-details" hidden><div><dt>Owner</dt><dd id="tile-owner"></dd></div><div><dt>Effective power</dt><dd id="tile-power"></dd></div><div><dt>Reinforcement</dt><dd id="tile-cooldown"></dd></div></dl>
+            <dl id="tile-details" hidden><div><dt>Owner</dt><dd id="tile-owner"></dd></div><div><dt>Effective power</dt><dd id="tile-power"></dd></div><div><dt>Reinforcement</dt><dd id="tile-cooldown"></dd></div><div><dt>Decay</dt><dd id="tile-decay"></dd></div></dl>
+            <section id="attack-preview" class="attack-preview" aria-label="Attack outcome preview" hidden>
+              <p class="eyebrow">ATTACK PREVIEW</p>
+              <div class="combat-equation"><div><strong id="preview-source"></strong><span>Your power</span></div><b aria-hidden="true">−</b><div><strong id="preview-defender"></strong><span>Defence</span></div><b aria-hidden="true">=</b><div><strong id="preview-remaining"></strong><span>Source keeps</span></div></div>
+              <p id="preview-result" class="preview-result"></p>
+              <p class="preview-note">Based on the latest loaded block. The result depends on power and ownership when your transaction is included.</p>
+            </section>
             <div class="actions"><button id="claim" class="button primary" disabled>Claim tile <span aria-hidden="true">＋</span></button><button id="reinforce" class="button primary" hidden disabled>Reinforce <span aria-hidden="true">↑</span></button><button id="attack" class="button outline" hidden disabled>Choose attack target <span aria-hidden="true">↗</span></button><button id="capture" class="button primary" hidden disabled>Confirm attack</button><button id="cancel-attack" class="text-button" hidden>Cancel attack</button></div><p id="action-help" class="form-help">Every move is a transaction you confirm in MetaMask.</p>
           </section>
           <section id="transaction" class="transaction-card" aria-live="polite" aria-atomic="true"><span class="transaction-label">TRANSACTION LOG</span><strong id="tx-title">Ready when you are.</strong><p id="tx-detail">Wallet confirmations and transaction results appear here.</p><a id="tx-link" target="_blank" rel="noopener noreferrer" hidden>View transaction ↗</a></section>
           <section class="rules-card"><p class="eyebrow">FIELD NOTES</p><h3>Power fades. Territory stays.</h3><p id="rule-decay">Power decays over blocks, but never below 1 on an owned tile.</p><p>Attack an adjacent enemy with strictly greater power. Your source loses the defender’s power; the captured tile starts at 1.</p><div class="rule-chips"><span id="cap-chip">Cap —</span><span id="cooldown-chip">Cooldown —</span></div></section>
         </aside>
       </div>
-      <section class="leaderboard-card" aria-labelledby="leaderboard-title"><div class="section-heading"><div><p class="eyebrow">THE TERRITORY RACE</p><h2 id="leaderboard-title">Leaderboard</h2></div><span class="muted">Ranked by tiles currently owned</span></div><div id="leaderboard-empty" class="empty-leaderboard">The board is waiting for its first conqueror.</div><ol id="leaderboard" class="leaderboard"></ol></section>
+      <section class="leaderboard-card" aria-labelledby="leaderboard-title"><div class="section-heading"><div><p class="eyebrow">THE TERRITORY RACE</p><h2 id="leaderboard-title">Leaderboard</h2></div><span class="muted">Territory share of all 64 tiles · labels local to this browser</span></div><div id="leaderboard-empty" class="empty-leaderboard">The board is waiting for its first conqueror.</div><ol id="leaderboard" class="leaderboard"></ol></section>
       <footer><span>BLOCK CONQUEST <span class="footer-divider">/</span> A university DApp experiment</span><span id="contract-footer">Contract not configured</span><span>Programmed rules. Shared territory.</span></footer>
     </main>
     <script type="module" src="/src/main.js"></script>

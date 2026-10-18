@@ -33,3 +33,67 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16
 @media (max-width: 1000px) { main { padding: 32px 22px 0; }.workspace { grid-template-columns: minmax(0, 1fr) 270px; gap: 16px; }.board-card { padding: 22px 16px; }.tile-number { font-size: 20px; }.board-key { padding-left: 0; }.power-key { margin-left: 0; }.board-card h2 { font-size: 22px; }.grid { gap: 4px; padding: 5px; }.intro-meta { max-width: 240px; }.stats > div { padding: 0 18px; } }
 @media (max-width: 760px) { .topbar { height: 72px; padding: 0 18px; }.brand { font-size: 12px; letter-spacing: 1px; gap: 8px; }.wallet-bar { gap: 10px; }.network-badge { display: none; }.wallet-bar .button { padding: 10px 12px; font-size: 11px; min-height: 38px; }main { padding: 30px 16px 0; }.intro { align-items: flex-start; flex-direction: column; margin-bottom: 24px; gap: 16px; }h1 { font-size: 37px; }.intro-meta { max-width: none; text-align: left; width: 100%; display: flex; align-items: center; gap: 5px; }.intro-meta details { margin: 0 0 0 auto; }#settings-form { top: 30px; width: min(345px, calc(100vw - 32px)); }.stats { grid-template-columns: repeat(2, 1fr); row-gap: 20px; padding: 20px 0; }.stats > div:nth-child(2) { border-right: 0; }.stats strong { font-size: 29px; }.workspace { grid-template-columns: 1fr; }.board-card { padding: 22px 14px; }.board-card h2 { font-size: 22px; }.board-hint { margin-bottom: 16px; }.board-frame { grid-template-columns: 12px minmax(0, 1fr); gap: 4px; }.grid { gap: 4px; padding: 4px; }.tile { border-radius: 3px; }.tile-number { font-size: 19px; }.pips { gap: 2px; margin-top: 3px; }.pips i { width: 2px; height: 2px; }.board-key { padding-top: 16px; gap: 10px 14px; }.side-panel { grid-template-columns: 1fr; }.rules-card { padding: 16px; }.leaderboard-card { padding: 24px 20px; }.leaderboard-card .section-heading { align-items: flex-start; flex-direction: column; }.leaderboard { grid-template-columns: 1fr; }footer { line-height: 1.8; }.notice .button { margin: 8px 0 0; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* The board remains the focus; instructions and combat feedback sit beside it. */
+.guide-toggle { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin: -4px 0 18px; font-size: 11px; color: #53664e; }
+.guide-toggle .text-button { flex-shrink: 0; min-height: 30px; }
+.conquest-guide { padding: 17px; margin: 0 0 22px; background: #eff3e7; border: 1px solid #d7e1ca; border-radius: 7px; }
+.guide-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; }
+.guide-heading button { font-size: 11px; padding: 4px; }
+.guide-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; padding: 0; margin: 18px 0 12px; list-style: none; }
+.guide-steps li { display: flex; align-items: flex-start; gap: 9px; }
+.step-number { font: 17px Georgia, serif; color: #6a7f57; }
+.guide-steps strong { font-size: 12px; }
+.guide-steps p, .guide-footnote { font-size: 11px; line-height: 1.6; color: #53644b; margin: 5px 0 0; }
+.guide-footnote { padding-top: 10px; border-top: 1px solid #d6dfcb; }
+.owner-marker { font-size: 10px; font-weight: 700; letter-spacing: .3px; line-height: 1; margin-top: 6px; padding: 3px 5px; border-radius: 3px; background: #ffffff65; }
+.occupied .tile-number { font-size: clamp(20px, 2.2vw, 28px); }
+.mine::after { width: 5px; height: 5px; }
+.tile.targetable:not(:disabled):hover { outline-style: solid; background: #f3dfc7; }
+.attack-preview { padding: 16px 13px; background: #eff3e7; border: 1px solid #ceddc0; border-radius: 7px; margin-top: 18px; }
+.attack-preview .eyebrow { color: #526d43; font-size: 9px; }
+.combat-equation { display: flex; justify-content: space-between; align-items: flex-start; gap: 5px; }
+.combat-equation > div { text-align: center; flex: 1; }
+.combat-equation strong { display: block; font: 30px/1.2 Georgia, serif; color: var(--green); }
+.combat-equation span { display: block; font-size: 9px; margin-top: 5px; color: #52634b; }
+.combat-equation b { font-size: 18px; line-height: 36px; font-weight: 400; color: #637557; }
+.preview-result { border-top: 1px solid #d1ddc5; padding-top: 12px; margin: 14px 0 0; font-size: 12px; font-weight: 650; }
+.preview-note { font-size: 10px; line-height: 1.6; margin: 8px 0 0; color: #53634c; }
+#tile-details dt { flex-shrink: 0; }
+#tile-decay, #tile-cooldown { max-width: 150px; line-height: 1.5; }
+.leaderboard li { display: grid; grid-template-columns: 22px 30px minmax(0, 1fr) auto; gap: 9px 12px; }
+.owner-swatch { display: flex; align-items: center; justify-content: center; width: 30px; height: 28px; font-size: 10px; font-weight: 700; color: hsl(var(--owner-hue) 40% 25%); }
+.leader-owner { overflow-wrap: anywhere; }
+.territory-share { grid-column: 3 / -1; display: flex; align-items: center; gap: 12px; font-size: 10px; color: #67755e; }
+.territory-share > span { white-space: nowrap; }
+.share-track { flex: 1; height: 6px; background: #edf0e6; border-radius: 4px; overflow: hidden; }
+.share-track > span { display: block; height: 100%; background: hsl(var(--owner-hue) 35% 44%); border-radius: inherit; }
+.tile.just-captured { animation: capture-pulse 1.5s ease-out; }
+@keyframes capture-pulse {
+  0%, 35% { box-shadow: inset 0 0 0 3px #183c34, 0 0 0 4px #b3c78b; transform: scale(.93); }
+  65% { box-shadow: inset 0 0 0 2px #183c34, 0 0 0 6px #b3c78b00; transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+@media (min-width: 761px) and (max-width: 1000px) {
+  .guide-steps { grid-template-columns: 1fr; gap: 9px; }
+  .guide-steps p { margin-top: 2px; }
+  .owner-marker { font-size: 8px; padding: 2px 3px; margin-top: 2px; }
+  .occupied .tile-number { font-size: 19px; }
+}
+@media (max-width: 760px) {
+  .guide-toggle { align-items: flex-start; font-size: 10px; }
+  .conquest-guide { padding: 14px; }
+  .guide-steps { grid-template-columns: 1fr; gap: 11px; margin: 12px 0; }
+  .guide-steps p { margin-top: 2px; }
+  .owner-marker { font-size: 8px; padding: 1px 2px; margin-top: 2px; letter-spacing: 0; }
+  .occupied .tile-number { font-size: 18px; }
+  .mine::after { width: 3px; height: 3px; right: 2px; top: 2px; }
+  .leaderboard li { gap: 9px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile.just-captured { animation: none; outline: 3px solid #607e45; outline-offset: -3px; }
+}
+@media (max-width: 380px) {
+  .occupied .tile-number { font-size: 14px; }
+  .owner-marker { font-size: 7px; padding: 0 2px; margin-top: 1px; }
+}

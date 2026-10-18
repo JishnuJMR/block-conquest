@@ -18,9 +18,10 @@ The creation receipt and current values returned by `decayInterval()`, `reinforc
 
 ## Features and technology
 
-- One shared board per contract, with owner colours and effective power displayed for every tile.
+- One shared board per contract, with owner colours, player labels, and effective power displayed for every tile.
 - Claim, reinforce, and capture transactions through MetaMask, with confirmation, pending, success, and error feedback.
-- On-chain ownership scores and a frontend leaderboard counted from `getGrid()` owners.
+- On-chain ownership scores and a frontend leaderboard with territory-share bars counted from `getGrid()` owners.
+- Attack outcome previews, per-tile block countdowns, dismissible instructions, and confirmed-capture feedback that respects reduced motion.
 - Block-based power decay, reinforcement cooldown, and an immutable power cap.
 - Refresh on new blocks, account/network change handling, and responsive desktop/mobile layouts.
 - No tokens, NFTs, betting, randomness, administrative takeover, or upgrades.
@@ -62,6 +63,10 @@ Power decays by 1 every 10 blocks since the tile's last update, with a floor of 
 
 The UI uses A–H and 1–8; A1 is `(0,0)` and H1 is `(7,0)`. Arrow keys move focus between tiles; Enter/Space selects a tile.
 
+Player markers (`P1`, `P2`, …) identify owners even without colour. Labels are saved per board in this browser and stay stable when ranks or connected accounts change; another browser may assign different labels. Addresses identify the actual players. **How to play** reopens the instructions. Select a tile to see reinforcement readiness and the next power-loss countdown, measured in blocks. Power 1 is the minimum.
+
+Selecting an attack target previews **your power − defence = power kept by the source**, with the captured tile starting at 1. This uses the latest loaded block; the contract determines the outcome when the transaction is included.
+
 ## Deploy your own contract with Remix
 
 The existing Sepolia board can be used without redeployment. To create a separate board:
@@ -89,11 +94,11 @@ npm run test:ui
 npm run build
 ```
 
-The suite contains **80 tests**: 62 contract tests, 6 frontend logic tests, and 12 browser integration tests. Run `npm test` before typechecking to generate contract types. Browser tests build the app and start a local node and preview server; ports **8545** and **4173** must be free. They use installed Chrome and a test-only EIP-1193 adapter forwarding to unlocked local Hardhat accounts. They do not automate MetaMask or send public-network transactions.
+The suite contains **85 tests**: 62 contract tests, 8 frontend logic tests, and 15 browser integration tests. Run `npm test` before typechecking to generate contract types. Browser tests build the app and start a local node and preview server; ports **8545** and **4173** must be free. They use installed Chrome and a test-only EIP-1193 adapter forwarding to unlocked local Hardhat accounts. They do not automate MetaMask or send public-network transactions.
 
 Install Google Chrome for browser tests, or set `PLAYWRIGHT_CHANNEL` to `msedge` if Microsoft Edge is installed. Contract and frontend logic tests do not need a browser.
 
-A fresh clone of the revised tracked snapshot passed clean installation, all 80 tests, typechecking, and the production build on Windows. The user also confirmed the fresh-checkout app loads the Sepolia board through real MetaMask. See [validation details](docs/VALIDATION.md).
+The submission version passed a fresh-clone check on Windows, including connection to the Sepolia board through real MetaMask. See [validation details](docs/VALIDATION.md) for that snapshot and [UI validation](docs/dev-notes/UI_ENHANCEMENTS.md) for the UI branch checks.
 
 Coverage includes invalid coordinates/ownership, occupied claims, edges and adjacency, attack power/cost, score updates, caps, exact cooldown/decay boundaries, long inactivity, both effective powers in combat, wallet rejection, stale confirmations, account/network changes, and responsive layout.
 
@@ -101,7 +106,7 @@ Coverage includes invalid coordinates/ownership, occupied claims, edges and adja
 
 ## Screenshots and live transactions
 
-Sepolia board after a two-account capture: account A owns H1 and G1 (blue), while account B retains G2 (purple). Scores are A: 2 and B: 1. The receipt and contract state at the attack block were independently checked.
+Sepolia board in the submission-version UI after a two-account capture: account A owns H1 and G1 (blue), while account B retains G2 (purple). Scores are A: 2 and B: 1. The receipt and contract state at the attack block were independently checked.
 
 ![Block Conquest on Sepolia after capture, showing two owner colours, scores, and Attack confirmed](docs/screenshots/sepolia-capture.png)
 
@@ -110,7 +115,11 @@ Sepolia board after a two-account capture: account A owns H1 and G1 (blue), whil
 - [Successful H1 reinforcement to power 2](https://sepolia.etherscan.io/tx/0xaf99d3aa6b37990fee418dbef511ff39a5e450a6f55658a73ba413a87d3de50c)
 - [Earlier Sepolia screenshot after reinforcement and decay back to power 1](docs/screenshots/sepolia-board.png)
 
-Additional local Hardhat screenshots with three players: [desktop](docs/screenshots/local-board-desktop.png), [mobile](docs/screenshots/local-board-mobile.png). These are local test images, distinct from the Sepolia screenshot.
+Enhanced UI with three players and an attack preview on local Hardhat:
+
+![Enhanced Block Conquest UI with owner markers and an attack outcome preview on local Hardhat](docs/screenshots/local-board-desktop.png)
+
+[Mobile view](docs/screenshots/local-board-mobile.png). These are local test images, distinct from the Sepolia screenshot above.
 
 ## Known limitations
 

@@ -76,13 +76,19 @@ test('connect, claim, wait for cooldown, reinforce, and show decay on new blocks
   await expect(page.locator('#my-score')).toHaveText('1');
   await expect(page.locator('#leaderboard')).toContainText('1 tile');
   await expect(page.locator('#reinforce')).toBeDisabled();
+  await expect(page.locator('#tile-cooldown')).toHaveText('Ready in 3 blocks');
+  await expect(page.locator('#tile-decay')).toHaveText('Minimum power reached');
   await mine(3);
   await expect(page.locator('#reinforce')).toBeEnabled();
   await page.locator('#reinforce').click();
   await expect(page.locator('#tx-title')).toHaveText('Reinforcement confirmed.');
   await expect(cell(page, 0)).toHaveAttribute('aria-label', /power 2/);
-  await mine(10);
+  await expect(page.locator('#tile-decay')).toHaveText('Next power loss in 10 blocks');
+  await mine(9);
+  await expect(page.locator('#tile-decay')).toHaveText('Next power loss in 1 block');
+  await mine(1);
   await expect(cell(page, 0)).toHaveAttribute('aria-label', /power 1/);
+  await expect(page.locator('#tile-decay')).toHaveText('Minimum power reached');
   await expect(page.locator('#my-score')).toHaveText('1');
 });
 
@@ -98,13 +104,69 @@ test('attack uses selected source and adjacent target, updates board and leaderb
   await expect(page.locator('#capture')).toBeDisabled();
   await cell(page, 1).click();
   await expect(page.locator('#capture')).toBeEnabled();
+  await expect(page.locator('#preview-source')).toHaveText('3');
+  await expect(page.locator('#preview-defender')).toHaveText('1');
+  await expect(page.locator('#preview-remaining')).toHaveText('2');
+  await expect(page.locator('#preview-result')).toHaveText('B1 becomes yours with 1 power.');
+  await expect(page.locator('.preview-note')).toContainText('when your transaction is included');
   await page.locator('#capture').click();
   await expect(page.locator('#tx-title')).toHaveText('Attack confirmed.');
+  await expect(cell(page, 1)).toHaveClass(/just-captured/);
+  await expect(cell(page, 1)).toHaveCSS('animation-name', 'capture-pulse');
   await expect(page.locator('#my-score')).toHaveText('2');
   await expect(cell(page, 1)).toHaveAttribute('aria-label', /your tile, power 1/);
   await expect(cell(page, 0)).toHaveAttribute('aria-label', /power 2/);
   await expect(page.locator('#leaderboard li')).toHaveCount(2);
   expect((await game.getTile(1, 0)).owner).toBe(await alice.getAddress());
+  await expect(cell(page, 1)).not.toHaveClass(/just-captured/);
+});
+
+test('instructions persist and ownership labels survive reloads and account changes', async ({ page }) => {
+  await (await game.claim(0, 0)).wait();
+  await (await game.connect(bob).claim(1, 0)).wait();
+  await openBoard(page); await connect(page);
+  await expect(page.locator('#conquest-guide')).toBeVisible();
+  await page.locator('#dismiss-guide').click();
+  await expect(page.locator('#conquest-guide')).toBeHidden();
+  await expect(page.locator('#show-guide')).toBeFocused();
+  const marker = await cell(page, 0).locator('.owner-marker').textContent();
+  const other = await cell(page, 1).locator('.owner-marker').textContent();
+  expect(marker).not.toBe(other);
+  await expect(page.locator('#leaderboard')).toContainText(marker);
+  await expect(page.locator('.territory-share').first()).toHaveText('1.6% of board');
+  await page.reload(); await connect(page);
+  await expect(page.locator('#conquest-guide')).toBeHidden();
+  await expect(cell(page, 0).locator('.owner-marker')).toHaveText(marker);
+  await page.evaluate(account => window.__wallet.changeAccount(account), await bob.getAddress());
+  await expect(cell(page, 1)).toHaveAttribute('aria-label', /your tile/);
+  await expect(cell(page, 0).locator('.owner-marker')).toHaveText(marker);
+  await page.locator('#show-guide').click();
+  await expect(page.locator('#conquest-guide')).toBeVisible();
+});
+
+test('attack preview expires when new-block decay makes the selected target too strong', async ({ page }) => {
+  await (await game.claim(0, 0)).wait(); await reinforce(0, 0);
+  await (await game.connect(bob).claim(1, 0)).wait();
+  await openBoard(page); await connect(page);
+  await cell(page, 0).click(); await page.locator('#attack').click(); await cell(page, 1).click();
+  await expect(page.locator('#attack-preview')).toBeVisible();
+  await mine(10);
+  await expect(page.locator('#attack-preview')).toBeHidden();
+  await expect(page.locator('#capture')).toBeDisabled();
+  await expect(page.locator('#selection-title')).toHaveText('Choose an enemy.');
+});
+
+test('confirmed captures respect reduced motion and retain confirmation feedback', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await (await game.claim(0, 0)).wait(); await reinforce(0, 0);
+  await (await game.connect(bob).claim(1, 0)).wait();
+  await openBoard(page); await connect(page);
+  await cell(page, 0).click(); await page.locator('#attack').click(); await cell(page, 1).click();
+  await page.locator('#capture').click();
+  await expect(page.locator('#tx-title')).toHaveText('Attack confirmed.');
+  await expect(cell(page, 1)).toHaveClass(/just-captured/);
+  await expect(cell(page, 1)).toHaveCSS('animation-name', 'none');
+  await expect(cell(page, 1)).toHaveAttribute('aria-label', /your tile, power 1/);
 });
 
 test('rejecting a wallet request restores controls and leaves the tile empty', async ({ page }) => {
@@ -233,11 +295,22 @@ test('live board screenshots, keyboard navigation, and mobile layout', async ({ 
   await openBoard(page); await connect(page);
   await cell(page, 27).focus(); await page.keyboard.press('ArrowRight'); await expect(cell(page, 28)).toBeFocused();
   await cell(page, 27).click();
+  await page.locator('#dismiss-guide').click();
+  await page.locator('#attack').click(); await cell(page, 28).click();
   await mkdir('docs/screenshots', { recursive: true });
   await page.screenshot({ path: 'docs/screenshots/local-board-desktop.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: 'docs/screenshots/local-board-mobile.png', fullPage: true });
-  await expect(page.locator('#attack')).toBeEnabled();
+  await expect(page.locator('#capture')).toBeEnabled();
+  await page.setViewportSize({ width: 320, height: 740 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.locator('.occupied').evaluateAll(tiles => tiles.every(tile => {
+    const bounds = tile.getBoundingClientRect();
+    return [...tile.children].every(child => {
+      const rect = child.getBoundingClientRect();
+      return rect.top >= bounds.top && rect.bottom <= bounds.bottom;
+    });
+  }))).toBe(true);
   expect(pageErrors).toEqual([]);
 });

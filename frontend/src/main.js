@@ -1,5 +1,5 @@
 import { BrowserProvider, Contract, getAddress } from 'ethers';
-import { ABI, NETWORKS, sameAddress, isEmpty, shortAddress, coordinate, adjacent, validateAddress, leaderboard, ownerHue, cooldownRemaining, canAttack, friendlyError } from './game.js';
+import { ABI, NETWORKS, sameAddress, isEmpty, shortAddress, coordinate, adjacent, validateAddress, leaderboard, ownerIdentities, decayRemaining, cooldownRemaining, canAttack, friendlyError } from './game.js';
 import './style.css';
 
 const $ = id => document.getElementById(id);
@@ -18,10 +18,40 @@ const state = {
   ...savedConfig(), wallet: null, provider: null, contract: null, account: null, walletChain: null,
   tiles: [], block: 0n, cap: 5n, cooldown: 3n, decay: 10n, score: 0n,
   ready: false, selected: null, attackSource: null, target: null, busy: false, connecting: false,
-  epoch: 0, refreshId: 0, operation: 0, readError: '',
+  epoch: 0, refreshId: 0, operation: 0, readError: '', identities: new Map(), captured: null,
 };
 $('chain').value = String(state.chain);
 $('address').value = state.address;
+
+let captureTimer;
+const identityCache = new Map();
+function updateIdentities() {
+  const key = `block-conquest:owners:${state.chain}:${state.address.toLowerCase()}`;
+  let known = identityCache.get(key);
+  if (!known) {
+    try { const saved = JSON.parse(localStorage.getItem(key)); if (Array.isArray(saved)) known = saved; } catch { /* Optional storage. */ }
+  }
+  state.identities = ownerIdentities(state.tiles, known || []);
+  const addresses = [...state.identities.keys()];
+  identityCache.set(key, addresses);
+  try { localStorage.setItem(key, JSON.stringify(addresses)); } catch { /* Stable for this session even without storage. */ }
+}
+const identity = owner => state.identities.get(owner?.toLowerCase());
+function showGuide(show) {
+  $('conquest-guide').hidden = !show;
+  $('show-guide').setAttribute('aria-expanded', String(show));
+  try { localStorage.setItem('block-conquest:guide-dismissed', String(!show)); } catch { /* Optional preference. */ }
+}
+try { $('conquest-guide').hidden = localStorage.getItem('block-conquest:guide-dismissed') === 'true'; } catch { /* Show instructions by default. */ }
+$('show-guide').setAttribute('aria-expanded', String(!$('conquest-guide').hidden));
+$('show-guide').addEventListener('click', () => showGuide($('conquest-guide').hidden));
+$('dismiss-guide').addEventListener('click', () => { showGuide(false); $('show-guide').focus(); });
+
+function captureFeedback(index) {
+  clearTimeout(captureTimer);
+  state.captured = index;
+  captureTimer = setTimeout(() => { state.captured = null; render(); }, 1600);
+}
 
 function notice(message) {
   $('setup-message').textContent = message;
@@ -86,25 +116,25 @@ function render() {
   $('contract-footer').title = state.address;
   $('board-hint').textContent = !state.ready ? 'Connect to the configured network to load live territory.' : state.attackSource != null
     ? `Attacking from ${coordinate(state.attackSource)}. Choose a highlighted enemy, then confirm.`
-    : 'Select an empty tile to claim it, or your territory to reinforce and attack.';
+    : state.score === 0n ? 'Choose your first territory: select any empty tile, then claim it.'
+    : 'Select your territory to build power, or claim an empty tile to expand.';
 
   cells.forEach((button, index) => {
     const tile = state.tiles[index];
     const empty = isEmpty(tile);
     const mine = sameAddress(tile?.owner, state.account);
     const eligible = canAttack(state.tiles, state.attackSource, index, state.account);
-    button.className = `tile${empty ? ' unclaimed' : ' occupied'}${mine ? ' mine' : ''}${index === state.selected ? ' is-selected' : ''}${index === state.attackSource ? ' source' : ''}${eligible ? ' targetable' : ''}`;
+    button.className = `tile${empty ? ' unclaimed' : ' occupied'}${mine ? ' mine' : ''}${index === state.selected ? ' is-selected' : ''}${index === state.attackSource ? ' source' : ''}${eligible ? ' targetable' : ''}${index === state.captured ? ' just-captured' : ''}`;
     button.disabled = !state.ready || state.busy;
-    button.style.setProperty('--owner-hue', String(empty ? 0 : ownerHue(tile.owner)));
+    button.style.setProperty('--owner-hue', String(empty ? 0 : identity(tile.owner)?.hue ?? 0));
     button.setAttribute('aria-pressed', String(index === state.selected));
-    button.setAttribute('aria-label', `${coordinate(index)}: ${!state.ready ? 'not loaded' : empty ? 'unclaimed' : `${mine ? 'your tile' : shortAddress(tile.owner)}, power ${tile.power}`}${eligible ? ', attack available' : ''}`);
+    button.setAttribute('aria-label', `${coordinate(index)}: ${!state.ready ? 'not loaded' : empty ? 'unclaimed' : `${mine ? 'your tile' : shortAddress(tile.owner)}, power ${tile.power}, owner ${identity(tile.owner)?.label}`}${eligible ? ', attack available' : ''}`);
     button.title = !state.ready ? 'Load a board first' : empty ? `${coordinate(index)} · Unclaimed` : `${coordinate(index)} · ${tile.owner} · Power ${tile.power}`;
     button.replaceChildren();
     const number = document.createElement('span'); number.className = 'tile-number'; number.textContent = empty ? '+' : String(tile.power); button.append(number);
     if (!empty) {
-      const pips = document.createElement('span'); pips.className = 'pips'; pips.setAttribute('aria-hidden', 'true');
-      for (let i = 0; i < Math.min(Number(tile.power), 7); i++) pips.append(document.createElement('i'));
-      button.append(pips);
+      const marker = document.createElement('span'); marker.className = 'owner-marker'; marker.setAttribute('aria-hidden', 'true');
+      marker.textContent = identity(tile.owner)?.label; button.append(marker);
     }
   });
   renderSelection();
@@ -114,10 +144,16 @@ function render() {
   leaders.forEach((row, i) => {
     const li = document.createElement('li');
     const rank = document.createElement('span'); rank.className = 'rank'; rank.textContent = String(i + 1).padStart(2, '0');
-    const swatch = document.createElement('span'); swatch.className = 'owner-swatch'; swatch.style.setProperty('--owner-hue', String(ownerHue(row.owner)));
+    li.style.setProperty('--owner-hue', String(identity(row.owner).hue));
+    const swatch = document.createElement('span'); swatch.className = 'owner-swatch'; swatch.textContent = identity(row.owner).label;
     const owner = document.createElement('span'); owner.className = 'leader-owner'; owner.textContent = `${shortAddress(row.owner)}${sameAddress(row.owner, state.account) ? ' · You' : ''}`; owner.title = row.owner;
     const score = document.createElement('strong'); score.textContent = `${row.score} ${row.score === 1 ? 'tile' : 'tiles'}`;
-    li.append(rank, swatch, owner, score); $('leaderboard').append(li);
+    const share = document.createElement('div'); share.className = 'territory-share';
+    const track = document.createElement('div'); track.className = 'share-track'; track.setAttribute('aria-hidden', 'true');
+    const fill = document.createElement('span'); fill.style.width = `${row.score / 64 * 100}%`; track.append(fill);
+    const percentage = document.createElement('span'); percentage.textContent = `${(row.score / 64 * 100).toFixed(1)}% of board`;
+    share.append(track, percentage);
+    li.append(rank, swatch, owner, score, share); $('leaderboard').append(li);
   });
 }
 
@@ -125,6 +161,7 @@ function renderSelection() {
   const tile = state.ready && state.selected != null ? state.tiles[state.selected] : null;
   for (const id of ['claim', 'reinforce', 'attack', 'capture', 'cancel-attack']) { $(id).hidden = true; $(id).disabled = true; }
   $('tile-details').hidden = !tile;
+  $('attack-preview').hidden = true;
   $('selection-coordinate').textContent = tile ? coordinate(state.selected) : '—';
   if (!tile) {
     $('selection-title').textContent = 'Pick your territory.';
@@ -135,10 +172,12 @@ function renderSelection() {
   }
   const empty = isEmpty(tile), mine = sameAddress(tile.owner, state.account);
   const remaining = cooldownRemaining(tile, state.block, state.cooldown);
-  $('tile-owner').textContent = empty ? 'Unclaimed' : mine ? 'You' : shortAddress(tile.owner);
+  $('tile-owner').textContent = empty ? 'Unclaimed' : `${identity(tile.owner).label} · ${mine ? 'You' : shortAddress(tile.owner)}`;
   $('tile-owner').title = empty ? '' : tile.owner;
   $('tile-power').textContent = `${tile.power} / ${state.cap}`;
-  $('tile-cooldown').textContent = empty ? 'Starts after claim' : remaining > 0n ? `${remaining} ${remaining === 1n ? 'block' : 'blocks'} remaining` : 'Ready';
+  $('tile-cooldown').textContent = empty ? 'Starts after claim' : remaining > 0n ? `Ready in ${remaining} ${remaining === 1n ? 'block' : 'blocks'}` : 'Ready';
+  const decayLeft = decayRemaining(tile, state.block, state.decay);
+  $('tile-decay').textContent = empty ? 'No power yet' : decayLeft == null ? 'Minimum power reached' : `Next power loss in ${decayLeft} ${decayLeft === 1n ? 'block' : 'blocks'}`;
   if (state.attackSource != null) {
     $('selection-title').textContent = state.target == null ? 'Choose an enemy.' : `${coordinate(state.attackSource)} → ${coordinate(state.target)}`;
     $('selection-description').textContent = state.target == null ? 'Highlighted tiles are adjacent enemies with less effective power.' : `Capture ${coordinate(state.target)} at power 1. Your source keeps ${state.tiles[state.attackSource].power - tile.power} power.`;
@@ -146,9 +185,18 @@ function renderSelection() {
     $('capture').disabled = state.busy || !canAttack(state.tiles, state.attackSource, state.target, state.account);
     $('cancel-attack').hidden = false; $('cancel-attack').disabled = state.busy;
     $('action-help').textContent = 'Power and ownership can change before your transaction is mined.';
+    if (canAttack(state.tiles, state.attackSource, state.target, state.account)) {
+      const source = state.tiles[state.attackSource];
+      $('attack-preview').hidden = false;
+      $('preview-source').textContent = String(source.power);
+      $('preview-defender').textContent = String(tile.power);
+      $('preview-remaining').textContent = String(source.power - tile.power);
+      $('preview-result').textContent = `${coordinate(state.target)} becomes yours with 1 power.`;
+      $('selection-description').textContent = 'Capture this neighbour. Review the power cost before confirming.';
+    }
     return;
   }
-  $('selection-title').textContent = empty ? 'A place to begin.' : mine ? 'Hold your ground.' : 'Enemy territory.';
+  $('selection-title').textContent = empty ? state.score === 0n ? 'Your conquest starts here.' : 'Expand your territory.' : mine ? 'Hold your ground.' : 'Enemy territory.';
   $('selection-description').textContent = empty ? `Claim ${coordinate(state.selected)} and start with 1 power.` : mine ? 'Build power, or use this tile to capture an adjacent enemy.' : 'Select one of your adjacent tiles, then choose an attack target.';
   $('claim').hidden = !empty; $('claim').disabled = !empty || state.busy;
   $('reinforce').hidden = !mine; $('reinforce').disabled = !mine || state.busy || remaining > 0n || tile.power >= state.cap;
@@ -173,6 +221,7 @@ function selectTile(index) {
 }
 
 function resetSession() {
+  clearTimeout(captureTimer); state.captured = null;
   state.epoch++; state.refreshId++; state.operation++;
   if (state.busy) transaction('Wallet or board changed.', 'An already submitted transaction may still confirm. Check its hash in MetaMask before sending another move.', 'warning');
   state.busy = false;
@@ -227,6 +276,7 @@ async function refreshBoard() {
     if (epoch !== state.epoch || id !== state.refreshId) return false;
     if (size !== 8n || grid.length !== 64 || cap < 2n || cooldown < 1n || decay < 1n) throw new Error('This address does not contain a compatible Block Conquest board.');
     state.tiles = grid.map(tile => ({ owner: getAddress(tile.owner), power: tile.power, lastUpdateBlock: tile.lastUpdateBlock }));
+    updateIdentities();
     Object.assign(state, { block, score, cap, cooldown, decay, ready: true, readError: '' });
     if (state.attackSource != null && !sameAddress(state.tiles[state.attackSource].owner, account)) state.attackSource = null;
     if (!canAttack(state.tiles, state.attackSource, state.target, account)) state.target = null;
@@ -266,12 +316,15 @@ async function submitMove(method, indices) {
     if (!current()) return;
     if (!receipt || receipt.status !== 1) throw new Error('The transaction failed on-chain. Refresh and try again.');
     state.attackSource = null; state.target = null; state.selected = indices.at(-1);
+    if (method === 'attack') captureFeedback(indices.at(-1));
     transaction(`${name} confirmed.`, `Included in block ${receipt.blockNumber}. Your move is recorded on ${NETWORKS[chain].name}.`, 'success', receipt.hash, chain);
     await refreshBoard();
   } catch (error) {
     if (!current()) return;
     if (error.code === 'TRANSACTION_REPLACED' && !error.cancelled && error.reason === 'repriced' && error.receipt?.status === 1) {
       state.attackSource = null; state.target = null;
+      state.selected = indices.at(-1);
+      if (method === 'attack') captureFeedback(indices.at(-1));
       transaction(`${name} confirmed.`, 'Your speed-up transaction was confirmed.', 'success', error.receipt.hash, chain);
     } else {
       transaction(error.code === 'TRANSACTION_REPLACED' ? 'Transaction replaced.' : 'Move not completed.', error.code === 'TRANSACTION_REPLACED' ? 'The wallet cancelled or replaced this move. Check MetaMask for the final transaction.' : friendlyError(error), 'error', hash, chain);

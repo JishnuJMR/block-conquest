@@ -33,10 +33,24 @@ export function leaderboard(tiles) {
     .sort((a, b) => b.score - a.score || a.owner.toLowerCase().localeCompare(b.owner.toLowerCase()));
 }
 
-export function ownerHue(owner) {
-  let hash = 0;
-  for (const char of owner.toLowerCase()) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return hash % 360;
+// Labels belong to this board in this browser, not to leaderboard rank. Keep
+// departed owners in the registry so a returning player retains their label.
+export function ownerIdentities(tiles, known = []) {
+  const addresses = [...new Set(known.filter(isAddress).map(owner => owner.toLowerCase()))];
+  const newcomers = leaderboard(tiles).map(row => row.owner.toLowerCase()).sort();
+  for (const owner of newcomers) if (!addresses.includes(owner)) addresses.push(owner);
+  const palette = [205, 280, 35, 155, 345, 65, 235, 180, 15, 305];
+  return new Map(addresses.map((owner, index) => [owner, {
+    label: `P${index + 1}`, hue: palette[index % palette.length],
+  }]));
+}
+
+// getGrid already supplies effective power. Count to the next boundary from
+// the stored update block; do not apply decay to that effective power again.
+export function decayRemaining(tile, block, interval) {
+  if (isEmpty(tile) || BigInt(tile.power) <= 1n) return null;
+  const elapsed = BigInt(block) - BigInt(tile.lastUpdateBlock);
+  return BigInt(interval) - (elapsed > 0n ? elapsed : 0n) % BigInt(interval);
 }
 
 export function cooldownRemaining(tile, block, cooldown) {
