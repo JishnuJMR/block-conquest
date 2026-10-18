@@ -1,0 +1,32 @@
+{
+  "name": "block-conquest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "typecheck": "tsc --noEmit",
+    "deploy:rehearsal": "hardhat ignition deploy ignition/modules/BlockConquest.ts --network hardhatMainnet",
+    "export:abi": "hardhat compile && node scripts/export-abi.mjs",
+    "predev": "npm run export:abi",
+    "dev": "vite",
+    "build": "npm run export:abi && vite build",
+    "preview": "vite preview",
+    "node:local": "hardhat node --network hardhatMainnet --hostname 127.0.0.1",
+    "deploy:local": "hardhat compile && node scripts/local-deploy.mjs",
+    "test:frontend": "node --test frontend/test/*.test.js",
+    "test:ui": "npm run build && playwright test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "4.0.0",
+    "@playwright/test": "1.64.1",
+    "@types/chai": "5.2.3",
+    "@types/mocha": "10.0.10",
+    "@types/node": "26.6.5",
+    "ethers": "6.17.0",
+    "hardhat": "3.19.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.4"
+  }
+}

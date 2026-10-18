@@ -1,0 +1,14 @@
+node_modules/
+artifacts/
+types/
+cache/
+coverage/
+dist/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+ignition/deployments/
+test-results/
+playwright-report/
