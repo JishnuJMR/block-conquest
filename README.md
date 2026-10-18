@@ -103,7 +103,7 @@ The suite contains **91 tests**: 62 contract tests, 8 frontend logic tests, and 
 
 Install Google Chrome for browser tests, or set `PLAYWRIGHT_CHANNEL` to `msedge` if Microsoft Edge is installed. Contract and frontend logic tests do not need a browser.
 
-Survey Atlas passed a fresh-clone check on Windows: clean installation, all 91 tests, typechecking, production build, and development-server startup. Loading the Sepolia board, disconnecting, and reconnecting were also confirmed through real MetaMask. See [validation details](docs/VALIDATION.md) for the checked snapshot. Earlier Sepolia evidence is retained with its original UI screenshots; the Survey Atlas images below are labelled as local tests.
+Survey Atlas passed a fresh-clone check on Windows: clean installation, all 91 tests, typechecking, production build, and development-server startup. Loading the Sepolia board, disconnecting, and reconnecting were also confirmed through real MetaMask. See [validation details](docs/VALIDATION.md) for the checked snapshot. The current Sepolia screenshot appears below; additional local test images are labelled separately.
 
 Coverage includes invalid coordinates/ownership, occupied claims, edges and adjacency, attack power/cost, score updates, caps, exact cooldown/decay boundaries, long inactivity, both effective powers in combat, wallet rejection, stale confirmations, account/network changes, and responsive layout.
 
@@ -111,9 +111,11 @@ Coverage includes invalid coordinates/ownership, occupied claims, edges and adja
 
 ## Screenshots and live transactions
 
-Sepolia board in the submission-version UI after a two-account capture: account A owns H1 and G1 (blue), while account B retains G2 (purple). Scores are A: 2 and B: 1. The receipt and contract state at the attack block were independently checked.
+Survey Atlas in a real MetaMask session on Sepolia. The screenshot shows five claimed tiles, two faction patterns, scores of 4 and 1, the selected tile's cooldown, a visible Disconnect control, and an **Attack confirmed** message.
 
-![Block Conquest on Sepolia after capture, showing two owner colours, scores, and Attack confirmed](docs/screenshots/sepolia-capture.png)
+![Survey Atlas on Sepolia with two factions, scores of 4 and 1, and Attack confirmed in the Move panel](docs/screenshots/sepolia-survey-atlas.png)
+
+The transactions below document earlier moves. The [earlier capture screenshot](docs/screenshots/sepolia-capture.png) shows account A owning H1 and G1 and account B retaining G2, with scores of 2 and 1. That capture receipt and contract state at its block were independently checked; it is a different capture from the one shown in the current screenshot.
 
 - [Successful H1 → G1 capture](https://sepolia.etherscan.io/tx/0xf868656f729c9704f55e5cdaa958dc707028629772a7a3723a0917469f0ecb47)
 - [Successful H1 claim](https://sepolia.etherscan.io/tx/0x9fcbd74381c90cf660a619e1a2973635458608b1b6ff62d518cd34f552802ddd)

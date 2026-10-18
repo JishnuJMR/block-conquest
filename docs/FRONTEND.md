@@ -93,11 +93,11 @@ npm run test:ui
 
 For a production build alone, run `npm run build`. Files are emitted to `frontend/dist/`. `npm run preview` serves that build at **http://127.0.0.1:4173**. Building and previewing do not publish anything.
 
-## Screenshots and remaining validation
+## Screenshots and validation
 
 Browser tests capture the app showing a real local Hardhat board with three current owners:
 
 - [Desktop screenshot](screenshots/local-board-desktop.png)
 - [Mobile screenshot](screenshots/local-board-mobile.png)
 
-These are labelled as local screenshots. The [Sepolia screenshot](screenshots/sepolia-board.png) is saved separately and embedded in README. The creation receipt, parameters, claim event, reinforcement event, and normalized runtime comparison are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
+These are labelled as local screenshots. The [Survey Atlas Sepolia screenshot](screenshots/sepolia-survey-atlas.png) shows a real MetaMask session and is embedded in README. The [earlier capture screenshot](screenshots/sepolia-capture.png) preserves the original two-account capture evidence. The creation receipt, parameters, claim, reinforcement and capture events, and normalized runtime comparison are documented in [DEPLOYMENT.md](DEPLOYMENT.md). Fresh-checkout tests and manual wallet acceptance are recorded in [VALIDATION.md](VALIDATION.md).
