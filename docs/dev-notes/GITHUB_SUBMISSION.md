@@ -1,5 +1,7 @@
 # GitHub submission
 
+> Historical guide from before initial publication. The repository is now published at https://github.com/JishnuJMR/block-conquest. Pending statuses and instructions below are retained as development history.
+
 The project contains the assignment code, tests, instructions, public Sepolia address, and real UI screenshot. Publishing still requires the user's explicit instruction. Local Git preparation does not upload files.
 
 ## Create an empty GitHub repository

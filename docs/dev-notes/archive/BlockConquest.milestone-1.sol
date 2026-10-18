@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-/// @notice Basic milestone: decay and cooldown enforcement are not implemented yet.
+/// @notice HISTORICAL SOURCE ONLY: basic milestone without decay/cooldown enforcement.
 /// @dev Enforces programmed rules on one shared board. No administrator or upgrades.
 contract BlockConquest {
     uint256 public constant BOARD_SIZE = 8;

@@ -4,16 +4,17 @@ The frontend is plain HTML/CSS/JavaScript with Vite and ethers.js. It signs tran
 
 ## Open the local app
 
-In VS Code's PowerShell terminal:
+In a terminal opened in the project folder:
 
-```powershell
-cd C:\folder\blockchain
-npm.cmd run dev
+```sh
+npm run dev
 ```
 
 Open **http://127.0.0.1:5173** in the browser containing MetaMask. This command compiles the current contract, exports its public ABI, and starts Vite. It does not deploy a contract. Press Ctrl+C in that terminal when finished.
 
-You can view the layout immediately. This working folder now defaults to the user-reported new Sepolia contract `0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`; real MetaMask frontend acceptance and independent deployment verification remain pending. Your historical Sepolia address `0x5A6dB2fA7424F519a10805c48EF33F4eA141A9c9` runs the old rules, so this frontend explicitly rejects it on Sepolia. Restart Vite if it was running before the new defaults were set. If browser-saved settings select a different board, update Board settings explicitly.
+Set Ethereum Sepolia and `0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3` in **Board settings**, or copy the public defaults from frontend/.env.example to frontend/.env.local before starting Vite. Claim, reinforcement, and decay have been observed with real MetaMask; deployment parameters and transaction events have also been independently checked. Browser-saved settings override environment defaults.
+
+On Windows PowerShell, substitute `npm.cmd` for `npm` if npm.ps1 is blocked. The commands elsewhere in this guide are portable unless explicitly marked PowerShell.
 
 ## Configure a board
 
@@ -43,23 +44,23 @@ Cooldown display is conservative: the button enables once the latest observed bl
 
 ## Optional local chain for development
 
-For normal assignment use, wait for the final Sepolia deployment. To experiment locally instead:
+The deployed Sepolia board is available through the address above. To experiment on a separate local chain instead:
 
 1. Start the node in terminal 1:
 
    ```powershell
-   npm.cmd run node:local
+   npm run node:local
    ```
 
 2. Deploy the current contract in terminal 2:
 
    ```powershell
-   npm.cmd run deploy:local
+   npm run deploy:local
    ```
 
    Copy the printed **local contract address**. This script is fixed to loopback and verifies chain ID 31337.
 
-3. Start the frontend with `npm.cmd run dev`. Select **Local Hardhat** in Board settings and enter the local address.
+3. Start the frontend with `npm run dev`. Select **Local Hardhat** in Board settings and enter the local address.
 4. To sign local moves manually, use a separate disposable MetaMask account imported from one of the local node's printed test keys. These are public development keys and must never hold real funds or be used for your Sepolia account. The local network is **http://127.0.0.1:8545**, chain ID **31337**, currency **ETH**. The app can ask MetaMask to add it if necessary.
 
 The local node mines on transactions, not on a wall-clock schedule. To advance ten blocks while testing decay without another transaction:
@@ -74,15 +75,15 @@ Stopping the node loses its local state. Restarting it requires another local de
 ## Build and checks
 
 ```powershell
-npm.cmd test
-npm.cmd run typecheck
-npm.cmd run test:frontend
-npm.cmd run test:ui
+npm test
+npm run typecheck
+npm run test:frontend
+npm run test:ui
 ```
 
 `test:ui` builds the frontend and starts its own temporary Hardhat node and production preview, so ports **8545** and **4173** must be free. It runs headless Chrome (already installed on this machine) against real contract deployments, with a test-only EIP-1193 adapter forwarding requests to unlocked local accounts. It tests application behavior and RPC transactions, **not the actual MetaMask extension popup**. No adapter, private keys, or test controls are included in the production app. Set `$env:PLAYWRIGHT_CHANNEL = 'msedge'` to use installed Edge instead.
 
-For a production build alone, run `npm.cmd run build`. Files are emitted to `frontend/dist/`. `npm.cmd run preview` serves that build at **http://127.0.0.1:4173**. Building and previewing do not publish anything.
+For a production build alone, run `npm run build`. Files are emitted to `frontend/dist/`. `npm run preview` serves that build at **http://127.0.0.1:4173**. Building and previewing do not publish anything.
 
 ## Screenshots and remaining validation
 
@@ -91,4 +92,4 @@ Browser tests capture the app showing a real local Hardhat board with three curr
 - [Desktop screenshot](screenshots/local-board-desktop.png)
 - [Mobile screenshot](screenshots/local-board-mobile.png)
 
-These are labelled as local screenshots. The user has since connected real MetaMask to the new Sepolia contract, claimed H1, reinforced it, and observed decay back to 1. Their [Sepolia screenshot](screenshots/sepolia-board.png) is also saved and embedded in README. Independent receipt/bytecode verification remains documented in [DEPLOYMENT.md](DEPLOYMENT.md).
+These are labelled as local screenshots. The [Sepolia screenshot](screenshots/sepolia-board.png) is saved separately and embedded in README. The creation receipt, parameters, claim event, reinforcement event, and normalized runtime comparison are documented in [DEPLOYMENT.md](DEPLOYMENT.md).

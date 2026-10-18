@@ -36,4 +36,4 @@ After storing these results, both tiles' last-update blocks become the attack's 
 
 Reads show the state at the block queried. A wallet transaction may be mined in a later block where power or cooldown eligibility has changed. For example, a power-2 source at block 109 may decay to 1 at block 110 and fail to capture a power-1 target. The contract's check at execution is authoritative. The frontend must refresh on new blocks and show failed transaction feedback.
 
-Local tests mine explicit block counts, account for the transaction itself mining the next block, and check both sides of each boundary. Run `npm.cmd test` to reproduce them; no wallet is needed.
+Local tests mine explicit block counts, account for the transaction itself mining the next block, and check both sides of each boundary. Run `npm test` to reproduce them; no wallet is needed. Use `npm.cmd test` on Windows PowerShell if script policy blocks npm.ps1.

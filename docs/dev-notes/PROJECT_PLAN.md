@@ -1,5 +1,7 @@
 # Block Conquest — project specification and progress
 
+> Historical development notes. Intermediate statuses, paths, and an obsolete deployment address below are retained as history. The root README and docs/DEPLOYMENT.md describe the current submission. The first GitHub upload completed at commit 9b10699.
+
 Deadline: **2 November 2026**. Environment: Windows 11, VS Code, PowerShell.
 
 ## Scope and submission

@@ -1,5 +1,7 @@
 # Milestone 2: throwaway Sepolia deployment and first MetaMask claim
 
+> Historical setup guide for an obsolete deployment. Use the root README and docs/DEPLOYMENT.md for the active contract. Historical source is preserved in docs/dev-notes/archive/BlockConquest.milestone-1.sol. Statuses and old paths below describe earlier milestones.
+
 Status: the user reported completing this setup check on **18 October 2026**, including a deployed address, getTile owner output, and scoreOf = 1 after claiming `(0,0)`. Transaction hashes and independent receipt/full-state verification are still outstanding. The historical deployment is the basic contract without decay/cooldown; the current local source now implements those rules. Do not use the historical address as the final assignment deployment.
 
 The original rehearsal passed 28 local tests. Milestone 3 now passes 62 tests with decay and cooldown, including the current deployment module. This guide records the browser setup flow; there is no need to repeat deployment for the completed setup check.

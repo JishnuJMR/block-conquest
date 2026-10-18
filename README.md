@@ -1,86 +1,116 @@
 # Block Conquest
 
-A university DApp assignment due **2 November 2026**. Players share an 8×8 board, claim empty tiles, reinforce their territory, and capture orthogonally adjacent enemy tiles using greater power. The Solidity contract enforces programmed rules; it is not cheat-proof.
+A university DApp where players share an 8×8 board on Ethereum Sepolia. Claim empty tiles, reinforce your territory, and capture adjacent enemy tiles. Every move is enforced by a Solidity smart contract and signed through MetaMask.
 
-**Status: deployed on Sepolia, with frontend claim, reinforcement, and decay observed by the user.** The current contract enforces decay and cooldown. The Vite/ethers frontend provides an interactive board, wallet connection, transactions, and leaderboard. A real Sepolia UI screenshot is included below. Independent deployment verification and GitHub publication remain pending. See [PROJECT_PLAN.md](PROJECT_PLAN.md), [deployment evidence](docs/DEPLOYMENT.md), [rule examples](docs/GAME_RULES.md), and the [frontend guide](docs/FRONTEND.md).
+## Deployed contract
 
-## Local setup on Windows
+| Item | Value |
+| --- | --- |
+| Network | Ethereum Sepolia |
+| Chain ID | `11155111` |
+| Contract | [`0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`](https://sepolia.etherscan.io/address/0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3) |
+| Creation transaction | [`0xca33b7db…ca505d81`](https://sepolia.etherscan.io/tx/0xca33b7db66a7fa2db1460285581d2cc879d2e03b4d9626d2ea2fae11ca505d81) |
+| Decay interval | `10` blocks |
+| Reinforcement cooldown | `3` blocks |
+| Maximum power | `5` |
 
-Verified tools: Node.js 24.13.0, npm 11.6.2, Git 2.54.0.windows.1. Hardhat 3 requires Node.js >=22.13.0; use a supported even-numbered LTS release. This project pins Hardhat 3.19.0, ethers 6.17.0, and Solidity 0.8.28; commit package-lock.json for reproducible installs.
+The creation receipt and current values returned by `decayInterval()`, `reinforcementCooldown()`, and `maxPower()` were checked through Sepolia RPC. The deployed runtime matches the compiled contract after excluding compiler metadata and masking immutable-value locations. Details are recorded in [deployment evidence](docs/DEPLOYMENT.md).
 
-In the VS Code PowerShell terminal:
+## Features and technology
 
-```powershell
-cd C:\folder\blockchain
-npm.cmd ci
-npm.cmd test
-npm.cmd run typecheck
+- One shared board per contract, with owner colours and effective power displayed for every tile.
+- Claim, reinforce, and capture transactions through MetaMask, with confirmation, pending, success, and error feedback.
+- On-chain ownership scores and a frontend leaderboard counted from `getGrid()` owners.
+- Block-based power decay, reinforcement cooldown, and an immutable power cap.
+- Refresh on new blocks, account/network change handling, and responsive desktop/mobile layouts.
+- No tokens, NFTs, betting, randomness, administrative takeover, or upgrades.
+
+Built with Solidity **0.8.28**, Hardhat **3.19.0**, ethers.js **6.17.0**, Vite **8.3.4**, HTML/CSS/JavaScript, MetaMask, and Sepolia. Mocha tests cover the contract; Node tests cover frontend logic; Playwright covers browser interactions with real local contracts.
+
+## Run locally
+
+Requirements: Git, npm, a supported even-numbered Node.js release (**Node.js 24 LTS recommended**; Hardhat requires at least 22.13.0), and the [MetaMask browser extension](https://metamask.io/). The first compilation downloads the Solidity compiler and needs internet access.
+
+```sh
+git clone https://github.com/JishnuJMR/block-conquest.git
+cd block-conquest
+npm ci
+npm test
+npm run dev
 ```
 
-Dependencies are already installed in the current working folder, so `npm.cmd ci` is only needed after cloning or restoring dependencies. Use `npm.cmd` and `npx.cmd` because this machine's PowerShell execution policy blocks the corresponding .ps1 wrappers. No system execution-policy change is necessary. The first build downloads the Solidity compiler and needs internet access. Tests run on an ephemeral local Hardhat chain without MetaMask, Sepolia ETH, or private keys. Run tests or `npm.cmd run compile` before typechecking to generate contract types.
+1. Open **http://127.0.0.1:5173** in the browser containing MetaMask.
+2. In MetaMask, enable test networks and choose **Ethereum Sepolia**. Submitting moves needs Sepolia test ETH, available from a faucet such as [Google Cloud's Sepolia faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia).
+3. Open **Board settings**, select **Ethereum Sepolia**, paste `0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`, and click **Load board**.
+4. Click **Connect wallet** and approve access. The board loads from the deployed contract.
 
-## Current contract
+Board settings are saved in the browser. To set public defaults instead, copy `frontend/.env.example` to `frontend/.env.local` with your editor/file manager and restart Vite. Browser-saved settings override these defaults. Never put wallet keys, seed phrases, passwords, or private RPC credentials in frontend variables: `VITE_` values are public.
 
-- `claim(x, y)`: claim an empty tile for the caller at power 1.
-- `reinforce(x, y)`: after cooldown, add one effective power to your tile, up to the configured cap.
-- `attack(fromX, fromY, toX, toY)`: capture an adjacent enemy tile if source power is strictly greater. Source loses defender power; captured tile starts at 1.
-- `effectivePower(x, y)`: current power after lazy decay, with floor 1 for owned tiles and 0 for empty tiles.
-- `getTile(x, y)`: stored owner, power, and last-update block.
-- `getGrid()`: all 64 tiles in row-major order, `index = y * 8 + x`, with effective power.
-- `scoreOf(player)`: current tile count. No on-chain player list.
+If port 5173 is in use, stop the other server or run `npm run dev -- --port 5174` and open **http://127.0.0.1:5174**.
 
-Constructor arguments are `(decayInterval, reinforcementCooldown, maxPower)`, with intended defaults `(10, 3, 5)`. Intervals must be positive and maxPower must be at least 2 to allow reinforcement and combat. Parameters are immutable. Claims, reinforcement, and captures emit events. Both attacked tiles receive updated block timestamps. All power mutations already use effective-power calculations before resetting timestamps.
+**Windows PowerShell note:** if script policy blocks `npm.ps1`, use `npm.cmd` instead of `npm`, for example `npm.cmd ci`. No execution-policy change is required.
 
-Power loses one point per full decay interval since the tile's last update. Reinforcement is allowed when `block.number - lastUpdateBlock >= reinforcementCooldown`. Claims, reinforcements, and successful attacks reset the relevant tile's timer; an attack resets both source and captured tiles. Cooldown restricts reinforcement, while attack eligibility depends on ownership, adjacency, and effective power. Decay never removes ownership or changes scores. All rules use the transaction's inclusion block, so a preview can change before confirmation.
+## How to play
 
-There are no tokens, NFTs, betting, randomness, administrative takeover, or upgrades.
+1. **Claim:** select an empty tile, click **Claim tile**, and confirm in MetaMask. You own it at power 1.
+2. **Reinforce:** select your tile, wait for cooldown to finish, click **Reinforce**, and confirm. One point is added to effective power, up to the cap.
+3. **Attack:** select your source tile → **Choose attack target** → select a highlighted enemy → **Confirm attack** → approve in MetaMask.
 
-## Frontend
+Attacks are allowed only directly above, below, left, or right. Your effective power must be **strictly greater** than the defender's. Capture subtracts the defender's effective power from your source; the captured tile becomes yours at power 1. Scores count currently owned tiles.
 
-Run this in the project folder, then open **http://127.0.0.1:5173** in the browser containing MetaMask:
+Power decays by 1 every 10 blocks since the tile's last update, with a floor of 1. Ownership never decays. Claims, reinforcements, and attacks restart reinforcement cooldown; attacks update both source and captured tiles. Attacks have no separate cooldown. `getTile()` returns stored state, while `effectivePower()` and `getGrid()` include decay. See [rule examples](docs/GAME_RULES.md).
 
-```powershell
-npm.cmd run dev
+The UI uses A–H and 1–8; A1 is `(0,0)` and H1 is `(7,0)`. Arrow keys move focus between tiles; Enter/Space selects a tile.
+
+## Deploy your own contract with Remix
+
+The existing Sepolia board can be used without redeployment. To create a separate board:
+
+1. Open [Remix](https://remix.ethereum.org/) in the browser containing MetaMask. Create `contracts/BlockConquest.sol` and paste the complete current [contract source](contracts/BlockConquest.sol) from this repository.
+2. In **Solidity Compiler**, select **0.8.28**, enable the optimizer with **200 runs**, and set the EVM target to **cancun**. Compile.
+3. In MetaMask, enable test networks, select **Sepolia**, and choose an account funded with Sepolia test ETH.
+4. In **Deploy & Run Transactions**, choose **Browser Extension → MetaMask** (also called **Injected Provider – MetaMask**). Approve the connection and check **Sepolia / 11155111**.
+5. Select **BlockConquest**, keep **Value = 0**, and enter constructor arguments in order: `decayInterval = 10`, `reinforcementCooldown = 3`, `maxPower = 5`. These values are immutable; intervals must be positive and cap at least 2.
+6. Click **Deploy**, review the network and fee, and confirm in MetaMask. Explorer source verification is optional and is not required to deploy or use this app.
+7. Save the new contract address and creation transaction hash. Read `decayInterval()`, `reinforcementCooldown()`, and `maxPower()` in Remix to confirm `10`, `3`, and `5`.
+8. Enter the new address in the frontend's **Board settings**. This is a separate, initially empty board.
+
+Signing stays in MetaMask. No private-key export, Infura API key, or paid ETH is required. See [Remix deployment documentation](https://remix-ide.readthedocs.io/en/latest/run.html).
+
+For local development, `npm run node:local` starts Hardhat; in another terminal, `npm run deploy:local` prints a local address. Select **Local Hardhat** in Board settings. `npm run deploy:rehearsal` targets an ephemeral local chain only. More instructions are in the [frontend guide](docs/FRONTEND.md).
+
+## Tests and production build
+
+```sh
+npm test
+npm run typecheck
+npm run test:frontend
+npm run test:ui
+npm run build
 ```
 
-The script compiles the current contract and exports its ABI before starting Vite. This working folder is configured for Sepolia at `0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`; the user has completed frontend claim, reinforcement, and decay checks. After cloning, copy `frontend/.env.example` to `frontend/.env.local` with `Copy-Item frontend/.env.example frontend/.env.local`, or enter the address using **Board settings**. Browser-saved Board settings override environment defaults; update them if an earlier board is still selected. The old throwaway Sepolia address is explicitly rejected because it lacks decay/cooldown.
+The suite contains **80 tests**: 62 contract tests, 6 frontend logic tests, and 12 browser integration tests. Run `npm test` before typechecking to generate contract types. Browser tests build the app and start a local node and preview server; ports **8545** and **4173** must be free. They use installed Chrome and a test-only EIP-1193 adapter forwarding to unlocked local Hardhat accounts. They do not automate MetaMask or send public-network transactions.
 
-Features include a responsive 8×8 owner-coloured board, effective power, connected account's on-chain score, leaderboard counted from grid owners, claim/reinforce/attack controls, cooldown countdown, block refresh, network switching, account-change handling, and wallet/pending/success/error feedback. Select your tile → choose attack → select a weaker adjacent enemy → confirm. Arrow keys move focus between tiles.
+Install Google Chrome for browser tests, or set `PLAYWRIGHT_CHANNEL` to `msedge` if Microsoft Edge is installed. Contract and frontend logic tests do not need a browser.
 
-Build with `npm.cmd run build`; the output is `frontend/dist/`. Preview the build with `npm.cmd run preview`. The [frontend guide](docs/FRONTEND.md) covers optional public environment defaults, local deployment, and full run instructions. No secrets belong in `VITE_` variables or frontend code.
+Coverage includes invalid coordinates/ownership, occupied claims, edges and adjacency, attack power/cost, score updates, caps, exact cooldown/decay boundaries, long inactivity, both effective powers in combat, wallet rejection, stale confirmations, account/network changes, and responsive layout.
 
-### UI screenshots
+`npm run build` emits static files to `frontend/dist/`; `npm run preview` serves them at **http://127.0.0.1:4173**. Public website hosting is not required to run the DApp locally.
 
-The user's Sepolia screenshot shows the connected wallet, H1 owned at power 1, score 1, leaderboard, and a confirmed reinforcement transaction:
+## Screenshots and live transactions
 
-![Block Conquest running on Sepolia](docs/screenshots/sepolia-board.png)
+Sepolia board after a confirmed reinforcement and subsequent decay back to power 1, retaining ownership and score:
 
-Additional browser-test screenshots show a real local Hardhat board with three players: [desktop](docs/screenshots/local-board-desktop.png), [mobile](docs/screenshots/local-board-mobile.png).
+![Block Conquest on Sepolia with connected wallet, owned tile, score, and leaderboard](docs/screenshots/sepolia-board.png)
 
-## Validation
+- [Successful H1 claim](https://sepolia.etherscan.io/tx/0x9fcbd74381c90cf660a619e1a2973635458608b1b6ff62d518cd34f552802ddd)
+- [Successful H1 reinforcement to power 2](https://sepolia.etherscan.io/tx/0xaf99d3aa6b37990fee418dbef511ff39a5e450a6f55658a73ba413a87d3de50c)
 
-**80 tests pass:** 62 contract tests, 6 frontend logic tests, and 12 browser integration tests. Solidity compilation, TypeScript checking, and the Vite production build succeed.
+Additional local Hardhat screenshots with three players: [desktop](docs/screenshots/local-board-desktop.png), [mobile](docs/screenshots/local-board-mobile.png). These are local test images, distinct from the Sepolia screenshot.
 
-```powershell
-npm.cmd test
-npm.cmd run typecheck
-npm.cmd run test:frontend
-npm.cmd run test:ui
-```
+## Known limitations
 
-Browser tests start their own local node and preview server, requiring free ports 8545 and 4173. They use installed Chrome and a test-only wallet adapter against real local contracts. They verify transactions and frontend behavior but do not automate the actual MetaMask extension. Tests cover wallet rejection, pending locks, account/network changes, stale confirmations, decay refresh, failed attacks, invalid addresses, local deployment, keyboard navigation, and mobile layout. See [FRONTEND.md](docs/FRONTEND.md) for browser alternatives.
-
-Tests cover empty state, constructor validation, coordinates, occupied tiles, ownership, configurable caps, invalid targets, diagonal/distant/wrapped attacks, all four orthogonal directions at edges, equal/insufficient power, attack cost, captured power, events, timestamps, and score consistency through recapture. Timing tests cover cooldown boundaries after claims/reinforcements/attacks, per-tile timers, decay boundaries and floor, long inactivity without underflow, reinforcement from decayed power, effective-power caps, both powers in combat, and inclusion-block races. The deployment integration test exercises the current Ignition module, a first claim, cooldown, and decay on a local chain.
-
-## Deployment and submission
-
-- Target network: **Sepolia**, chain ID **11155111**.
-- Historical basic deployment (user-reported): **`0x5A6dB2fA7424F519a10805c48EF33F4eA141A9c9`**. This throwaway contract has no decay/cooldown enforcement and is not the final submission address. The user reported `getTile(0,0)` showing an owner and `scoreOf = 1`; transaction hashes and independent receipt verification remain outstanding.
-- Current Sepolia contract address (user-reported): **`0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`**. Deployment transaction hash and independent rule verification remain pending. A frontend claim of H1 was confirmed by the user and screenshot: [claim transaction](https://sepolia.etherscan.io/tx/0x9fcbd74381c90cf660a619e1a2973635458608b1b6ff62d518cd34f552802ddd). See [deployment evidence](docs/DEPLOYMENT.md) for verification status.
-- Deployment instructions: [Sepolia setup and first claim](docs/SEPOLIA_SETUP.md). Local rehearsal: `npm.cmd run deploy:rehearsal`. Live signing uses MetaMask through Remix; no live network credentials are stored in the project.
-- Frontend run steps and UI screenshots: complete. User confirms Sepolia claim, reinforcement, and decay; the saved Sepolia screenshot is embedded above.
-- GitHub repository/publication: pending; nothing has been published.
-
-The early setup check is complete based on the user's report. The basic source was preserved in `docs/archive/BlockConquest.milestone-1.sol` before the local contract changed. The current local rehearsal module is `ignition/modules/BlockConquest.ts`; running it does not update the historical Sepolia contract. Never paste a private key or seed phrase into chat. Keep secrets out of Git and frontend code; .gitignore excludes environment files and common key files. Local Hardhat test accounts are only for local development.
-
-Next: finish recording deployment evidence and publish the GitHub submission after authorization. See [the submission guide](docs/GITHUB_SUBMISSION.md). No public deployment or publication was performed during milestones 3 or 4.
+- The contract enforces programmed rules; it is **not cheat-proof**. Transactions are public, and competing claims or attacks can be reordered or front-run.
+- Power, ownership, and gas estimates can change between preview and inclusion. Another move or a decay boundary can make a transaction fail.
+- One person can control multiple accounts; there is no identity or anti-Sybil mechanism. There are no administrative recovery or upgrade mechanisms.
+- Automated capture tests cover local contracts and browser flows. The two-account Sepolia capture demonstration has not yet been recorded; verified claim and reinforcement transactions are linked above.
