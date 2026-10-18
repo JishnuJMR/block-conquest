@@ -14,11 +14,12 @@ The initial clarity pass is preserved at tag `v2-before-survey-atlas` (`503cf3b`
 - [x] Keyboard navigation with arrows, Enter/Space and Escape.
 - [x] Sparse three-tile desktop/mobile screenshots and six-faction greyscale review.
 - [x] 21 browser integration tests and production build passed.
-- [ ] Survey Atlas fresh clone, clean install, all 91 tests, typecheck and dev startup.
-- [ ] Real MetaMask review and new Sepolia screenshots.
+- [x] Fresh clone of `f38560e`: clean installation, all 91 tests, typecheck, production build, dev startup and HTTP 200 on port 5173.
+- [x] Real MetaMask review: Sepolia loads, disconnects and reconnects correctly.
+- [ ] New real Sepolia screenshots of Survey Atlas.
 - [ ] Review before merge/publication.
 
-No gameplay changes or redeployment. Dark theme, block ruler, pip animations, capture stamps and activity feeds remain deferred. Feature freeze remains **26 October 2026**. The tests use a local wallet adapter; actual MetaMask acceptance remains a manual step.
+No gameplay changes or redeployment. Dark theme, block ruler, pip animations, capture stamps and activity feeds remain deferred. Feature freeze remains **26 October 2026**. Automated tests use a local wallet adapter; actual MetaMask acceptance was completed separately in the fresh-checkout app.
 
 ## Earlier clarity pass (historical)
 

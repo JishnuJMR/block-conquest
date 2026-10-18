@@ -103,7 +103,7 @@ The suite contains **91 tests**: 62 contract tests, 8 frontend logic tests, and 
 
 Install Google Chrome for browser tests, or set `PLAYWRIGHT_CHANNEL` to `msedge` if Microsoft Edge is installed. Contract and frontend logic tests do not need a browser.
 
-See [validation details](docs/VALIDATION.md) for fresh-checkout results and the remaining real MetaMask review of Survey Atlas. Earlier Sepolia evidence is retained with its original UI screenshots.
+Survey Atlas passed a fresh-clone check on Windows: clean installation, all 91 tests, typechecking, production build, and development-server startup. Loading the Sepolia board, disconnecting, and reconnecting were also confirmed through real MetaMask. See [validation details](docs/VALIDATION.md) for the checked snapshot. Earlier Sepolia evidence is retained with its original UI screenshots; the Survey Atlas images below are labelled as local tests.
 
 Coverage includes invalid coordinates/ownership, occupied claims, edges and adjacency, attack power/cost, score updates, caps, exact cooldown/decay boundaries, long inactivity, both effective powers in combat, wallet rejection, stale confirmations, account/network changes, and responsive layout.
 

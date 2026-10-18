@@ -1,6 +1,25 @@
 # Submission and UI validation
 
-## Enhanced UI fresh checkout — 18 October 2026
+## Survey Atlas fresh checkout — 18 October 2026
+
+Tested a fresh local Git clone of **f38560e** on `ui/conquest-clarity` in an empty temporary directory, using `--no-hardlinks`. Dependencies, build output, caches, generated types and `.env.local` were not copied. Environment: Windows 11, Node.js 24.13.0, npm 11.6.2 and installed Chrome; commands used the documented `npm.cmd` substitution.
+
+| Check | Result |
+| --- | --- |
+| npm ci | Passed: 207 packages installed; audit reported zero vulnerabilities |
+| npm test | 62 contract tests passed |
+| npm run typecheck | Passed |
+| npm run test:frontend | 8 logic tests passed |
+| npm run test:ui | Production build and 21 browser integration tests passed |
+| npm run dev | Predev compile/export and Vite startup passed on port 5173 |
+| HTTP readiness | GET http://127.0.0.1:5173/ returned 200 with Survey Atlas and Disconnect controls |
+| Actual MetaMask acceptance | The fresh-checkout Sepolia board loaded, disconnected and reconnected successfully, confirmed through real MetaMask |
+
+All **91 tests** passed. The new browser checks cover permission revocation, unsupported-revocation fallback, disconnect during wallet confirmation, persistent disconnection, keyboard attacks and Escape, contract-derived rules with `(20,4,7)`, primary action reachability at 360×640, and six distinct faction textures. Desktop and mobile greyscale screenshots were visually inspected. The three-tile sparse board, attack estimate, reduced motion, new-block decay and transaction feedback are covered by browser checks and saved local screenshots.
+
+Browser automation uses real local Hardhat contracts through a test-only wallet adapter. Actual MetaMask acceptance is the separate manual check above. A new real Sepolia screenshot of Survey Atlas remains to be added before merging; existing Sepolia images retain the earlier capture evidence. No contract, deployment, dependencies or game rules changed. The submission baseline is preserved at `v1-submission-ready`, and the earlier UI at `v2-before-survey-atlas`.
+
+## Earlier clarity UI fresh checkout — 18 October 2026 (historical)
 
 A fresh local Git clone of **3792861** (`ui/conquest-clarity`) was created in an empty temporary folder without hardlinks. No dependencies, build output, cache, generated types, or `.env.local` were copied. On Windows 11 with Node.js 24.13.0, npm 11.6.2 and installed Chrome, the documented `npm.cmd` equivalents passed:
 
