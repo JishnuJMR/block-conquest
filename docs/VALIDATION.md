@@ -1,8 +1,24 @@
-# Submission validation
+# Submission and UI validation
+
+## Enhanced UI fresh checkout — 18 October 2026
+
+A fresh local Git clone of **3792861** (`ui/conquest-clarity`) was created in an empty temporary folder without hardlinks. No dependencies, build output, cache, generated types, or `.env.local` were copied. On Windows 11 with Node.js 24.13.0, npm 11.6.2 and installed Chrome, the documented `npm.cmd` equivalents passed:
+
+| Check | Result |
+| --- | --- |
+| npm ci | 207 packages installed; audit reported zero vulnerabilities |
+| npm test | 62 contract tests passed |
+| npm run typecheck | Passed |
+| npm run test:frontend | 8 logic tests passed |
+| npm run test:ui | Production build and 15 browser integration tests passed |
+| npm run dev | Predev compile/export and Vite startup passed on port 5173 |
+| HTTP readiness | GET http://127.0.0.1:5173/ returned 200 with the guide and attack-preview markup |
+
+The 85 tests include preview invalidation after decay, block countdown boundaries, owner-label persistence across reloads/accounts, instructions, and reduced-motion capture feedback. Desktop and mobile screenshots were reviewed, with additional checks for horizontal overflow and tile-content fit at 320px. Browser tests use actual local contracts with a test-only wallet adapter. Real MetaMask acceptance and an updated Sepolia screenshot for this UI remain separate manual checks before merging; the earlier evidence below describes the submission version.
 
 ## Fresh checkout of the revised submission
 
-Tested a new Git clone of local commit **1f8904f** in an empty temporary folder. The clone did not contain node_modules, artifacts, cache, generated contract types, or frontend/.env.local. Git objects were copied without hardlinks. This validates the tracked revised snapshot; subsequent changes add only documentation and live-capture evidence. Application code, contracts, dependency lockfile, and build/test configuration are unchanged from the tested snapshot.
+Tested a new Git clone of local commit **1f8904f** in an empty temporary folder. The clone did not contain node_modules, artifacts, cache, generated contract types, or frontend/.env.local. Git objects were copied without hardlinks. Subsequent changes through submission commit **da795a0** added only documentation and live-capture evidence. The UI branch is validated separately above.
 
 Environment: Windows 11, Node.js 24.13.0, npm 11.6.2, installed Google Chrome. Commands used the README's documented Windows `npm.cmd` substitution.
 

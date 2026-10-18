@@ -98,7 +98,7 @@ The suite contains **85 tests**: 62 contract tests, 8 frontend logic tests, and 
 
 Install Google Chrome for browser tests, or set `PLAYWRIGHT_CHANNEL` to `msedge` if Microsoft Edge is installed. Contract and frontend logic tests do not need a browser.
 
-The submission version passed a fresh-clone check on Windows, including connection to the Sepolia board through real MetaMask. See [validation details](docs/VALIDATION.md) for that snapshot and [UI validation](docs/dev-notes/UI_ENHANCEMENTS.md) for the UI branch checks.
+The enhanced UI passed a fresh-clone check on Windows: clean installation, all 85 tests, typechecking, production build, and development-server startup. The earlier submission version was also tested through real MetaMask on Sepolia. See [validation details](docs/VALIDATION.md) for the checked snapshots and the remaining manual UI review.
 
 Coverage includes invalid coordinates/ownership, occupied claims, edges and adjacency, attack power/cost, score updates, caps, exact cooldown/decay boundaries, long inactivity, both effective powers in combat, wallet rejection, stale confirmations, account/network changes, and responsive layout.
 

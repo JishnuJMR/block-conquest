@@ -21,7 +21,7 @@ Activity feeds, connected borders, decorative terrain and additional game rules 
 - [x] 15 browser integration tests using real local Hardhat contracts.
 - [x] TypeScript check and production build.
 - [x] Desktop/mobile screenshot inspection, keyboard navigation and narrow-screen checks.
-- [ ] Fresh checkout, clean install and README run commands.
+- [x] Fresh clone of `3792861`: `npm ci`, all 85 tests, typecheck, build, `npm run dev`, and HTTP 200 on port 5173. No existing dependencies, build output, types, cache or `.env.local` were copied.
 - [ ] Real MetaMask connection to the enhanced UI and new Sepolia screenshot.
 - [ ] Review before merging the branch.
 
