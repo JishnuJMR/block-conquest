@@ -2,7 +2,7 @@
 
 ## Fresh checkout of the revised submission
 
-Tested a new Git clone of local commit **1f8904f** in an empty temporary folder. The clone did not contain node_modules, artifacts, cache, generated contract types, or frontend/.env.local. Git objects were copied without hardlinks. This validates the tracked revised snapshot; the GitHub branch will receive these changes after the live capture evidence is completed.
+Tested a new Git clone of local commit **1f8904f** in an empty temporary folder. The clone did not contain node_modules, artifacts, cache, generated contract types, or frontend/.env.local. Git objects were copied without hardlinks. This validates the tracked revised snapshot; subsequent changes add only documentation and live-capture evidence. Application code, contracts, dependency lockfile, and build/test configuration are unchanged from the tested snapshot.
 
 Environment: Windows 11, Node.js 24.13.0, npm 11.6.2, installed Google Chrome. Commands used the README's documented Windows `npm.cmd` substitution.
 
@@ -22,4 +22,4 @@ Browser integration tests used actual local Hardhat deployments through a test-o
 
 ## Live Sepolia checks
 
-Creation receipt, deployed parameters `(10,3,5)`, runtime comparison, claim event, and reinforcement event have been independently checked. See [deployment evidence](DEPLOYMENT.md). Human fresh-checkout wallet acceptance is confirmed by the user's response above. The two-account live capture remains to be recorded.
+Creation receipt, deployed parameters `(10,3,5)`, runtime comparison, claim event, reinforcement event, and the two-account capture have been independently checked. Capture transaction `0xf868656f729c9704f55e5cdaa958dc707028629772a7a3723a0917469f0ecb47` succeeded at block 11940708. Reads at that block confirm A owns H1/G1 at power 1, B retains G2, and scores are A: 2, B: 1. See [deployment evidence](DEPLOYMENT.md). Human fresh-checkout wallet acceptance and live capture were performed with real MetaMask; the saved Sepolia capture screenshot is embedded in README.

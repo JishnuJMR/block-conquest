@@ -1,5 +1,7 @@
 # Two-account Sepolia capture demonstration
 
+Completed: [attack transaction](https://sepolia.etherscan.io/tx/0xf868656f729c9704f55e5cdaa958dc707028629772a7a3723a0917469f0ecb47), block 11940708. Receipt/event and post-attack board state were independently verified. The [capture screenshot](screenshots/sepolia-capture.png) shows two colours, scores A: 2 and B: 1, and Attack confirmed. The procedure below documents reproduction on a suitable board; the demonstrated G1 is now A-owned.
+
 Use the existing contract `0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`. No code change or redeployment is needed. Perform wallet confirmations yourself. Both accounts use Ethereum Sepolia, chain ID 11155111.
 
 ## Prepare the second account

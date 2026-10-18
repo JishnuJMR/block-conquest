@@ -21,14 +21,28 @@ The Etherscan address page identifies the creation transaction. Sepolia RPC inde
 | --- | --- | --- | --- |
 | Claim H1 | [0x9fcbd743…2802ddd](https://sepolia.etherscan.io/tx/0x9fcbd74381c90cf660a619e1a2973635458608b1b6ff62d518cd34f552802ddd) | 11939882 | TileClaimed(player, 7, 0) |
 | Reinforce H1 | [0xaf99d3aa…d3de50c](https://sepolia.etherscan.io/tx/0xaf99d3aa6b37990fee418dbef511ff39a5e450a6f55658a73ba413a87d3de50c) | 11939902 | TileReinforced(player, 7, 0, 2) |
+| Capture G1 from H1 | [0xf868656f…f0ecb47](https://sepolia.etherscan.io/tx/0xf868656f729c9704f55e5cdaa958dc707028629772a7a3723a0917469f0ecb47) | 11940708 | TileCaptured(A, B, 7, 0, 6, 0, 1) |
 
-The claim receipt has status 1 and contains the game contract's TileClaimed event for the creator account above. Its outer transaction destination is a wallet execution/router address; verification used the emitting contract address, rather than assuming a direct transaction. The reinforcement log records power 2. Current reads show H1 owned by that account at effective power 1 with score 1. The user separately observed reinforcement to 2 followed by decay to 1.
+The claim receipt has status 1 and contains the game contract's TileClaimed event for the creator account above. Its outer transaction destination is a wallet execution/router address; verification used the emitting contract address, rather than assuming a direct transaction. The reinforcement log records power 2. Before the later capture, reads showed H1 owned by that account at effective power 1 with score 1. The user separately observed reinforcement to 2 followed by decay to 1.
 
 The saved [Sepolia screenshot](screenshots/sepolia-board.png) shows reinforcement confirmed at block 11939902 and current block 11939931, H1 power 1, and score 1. It supports the end state, not an exact observation of the first decay block.
 
-## Evidence still to collect
+## Verified two-account capture
 
-- Two-account capture transaction and a Sepolia screenshot showing two owner colours.
+Account A: `0x104674c96993e62Af72407A6d76aBCE55725e2d2`.
+Account B: `0xcc157a66abbc356c1bf794CE83EBA2444ca201B1`.
+
+The capture receipt has status 1 and contains TileCaptured emitted by the deployed game address, with A as attacker, B as previous owner, source `(7,0)`, target `(6,0)`, and final source power 1. Contract calls at block **11940708** independently confirmed:
+
+| Read | Result |
+| --- | --- |
+| getTile(7,0), H1 | A-owned, power 1, lastUpdateBlock 11940708 |
+| getTile(6,0), G1 | A-owned, power 1, lastUpdateBlock 11940708 |
+| getTile(6,1), G2 | B-owned, power 1 |
+| scoreOf(A) | 2 |
+| scoreOf(B) | 1 |
+
+The reviewed [capture screenshot](screenshots/sepolia-capture.png) shows both owner colours, scores 2 and 1, and **Attack confirmed** at block 11940708. It is embedded in README.
 
 ## Fresh-checkout acceptance
 

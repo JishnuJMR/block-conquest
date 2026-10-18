@@ -101,12 +101,14 @@ Coverage includes invalid coordinates/ownership, occupied claims, edges and adja
 
 ## Screenshots and live transactions
 
-Sepolia board after a confirmed reinforcement and subsequent decay back to power 1, retaining ownership and score:
+Sepolia board after a two-account capture: account A owns H1 and G1 (blue), while account B retains G2 (purple). Scores are A: 2 and B: 1. The receipt and contract state at the attack block were independently checked.
 
-![Block Conquest on Sepolia with connected wallet, owned tile, score, and leaderboard](docs/screenshots/sepolia-board.png)
+![Block Conquest on Sepolia after capture, showing two owner colours, scores, and Attack confirmed](docs/screenshots/sepolia-capture.png)
 
+- [Successful H1 → G1 capture](https://sepolia.etherscan.io/tx/0xf868656f729c9704f55e5cdaa958dc707028629772a7a3723a0917469f0ecb47)
 - [Successful H1 claim](https://sepolia.etherscan.io/tx/0x9fcbd74381c90cf660a619e1a2973635458608b1b6ff62d518cd34f552802ddd)
 - [Successful H1 reinforcement to power 2](https://sepolia.etherscan.io/tx/0xaf99d3aa6b37990fee418dbef511ff39a5e450a6f55658a73ba413a87d3de50c)
+- [Earlier Sepolia screenshot after reinforcement and decay back to power 1](docs/screenshots/sepolia-board.png)
 
 Additional local Hardhat screenshots with three players: [desktop](docs/screenshots/local-board-desktop.png), [mobile](docs/screenshots/local-board-mobile.png). These are local test images, distinct from the Sepolia screenshot.
 
@@ -115,4 +117,3 @@ Additional local Hardhat screenshots with three players: [desktop](docs/screensh
 - The contract enforces programmed rules; it is **not cheat-proof**. Transactions are public, and competing claims or attacks can be reordered or front-run.
 - Power, ownership, and gas estimates can change between preview and inclusion. Another move or a decay boundary can make a transaction fail.
 - One person can control multiple accounts; there is no identity or anti-Sybil mechanism. There are no administrative recovery or upgrade mechanisms.
-- Automated capture tests cover local contracts and browser flows. The two-account Sepolia capture demonstration has not yet been recorded; verified claim and reinforcement transactions are linked above.
