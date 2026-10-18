@@ -93,6 +93,8 @@ The suite contains **80 tests**: 62 contract tests, 6 frontend logic tests, and 
 
 Install Google Chrome for browser tests, or set `PLAYWRIGHT_CHANNEL` to `msedge` if Microsoft Edge is installed. Contract and frontend logic tests do not need a browser.
 
+A fresh clone of the revised tracked snapshot passed clean installation, all 80 tests, typechecking, and the production build on Windows. The user also confirmed the fresh-checkout app loads the Sepolia board through real MetaMask. See [validation details](docs/VALIDATION.md).
+
 Coverage includes invalid coordinates/ownership, occupied claims, edges and adjacency, attack power/cost, score updates, caps, exact cooldown/decay boundaries, long inactivity, both effective powers in combat, wallet rejection, stale confirmations, account/network changes, and responsive layout.
 
 `npm run build` emits static files to `frontend/dist/`; `npm run preview` serves them at **http://127.0.0.1:4173**. Public website hosting is not required to run the DApp locally.

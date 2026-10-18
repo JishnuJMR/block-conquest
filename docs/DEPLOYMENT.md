@@ -29,6 +29,9 @@ The saved [Sepolia screenshot](screenshots/sepolia-board.png) shows reinforcemen
 ## Evidence still to collect
 
 - Two-account capture transaction and a Sepolia screenshot showing two owner colours.
-- Human MetaMask acceptance from the fresh checkout; automated browser/RPC checks are separate.
+
+## Fresh-checkout acceptance
+
+A clean clone of the revised tracked snapshot passed installation, all 80 tests, typechecking, and production build. Its development server returned HTTP 200 on the documented port-5174 fallback. The user opened that fresh-checkout app, configured Sepolia/address, connected real MetaMask, and confirmed the board loaded. See [validation details](VALIDATION.md). The human confirmation is separate from automated browser/RPC checks.
 
 The public RPC did not serve historical account state at the creation block, so no historical getCode check is claimed. Creation was checked using its receipt; runtime and parameter checks use current chain state.
