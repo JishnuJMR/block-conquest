@@ -1,5 +1,27 @@
 # UI enhancement branch — 18 October 2026
 
+## Survey Atlas redesign
+
+The initial clarity pass is preserved at tag `v2-before-survey-atlas` (`503cf3b`). Survey Atlas continues on `ui/conquest-clarity`; the original submission remains at `v1-submission-ready` on `main`.
+
+- [x] Cool-paper/ink identity, map corner marks, stronger typography and compact board statistics.
+- [x] Six distinct patterns; power and player label on tiles, insignias in the Move panel and leaderboard. The connected faction reads **You**.
+- [x] One Move panel containing the estimate, contract-derived countdowns, actions and transaction feedback.
+- [x] Source-to-target attack arrow, static pending outlines, confirmed capture feedback and reduced-motion support.
+- [x] Visible Disconnect: local session cleanup and MetaMask permission-revocation request, with an honest fallback if unsupported.
+- [x] Explicitly unloaded disconnected board; no new public RPC dependency.
+- [x] Mobile action row, reachable at 360×640, including selected coordinate and transaction feedback.
+- [x] Keyboard navigation with arrows, Enter/Space and Escape.
+- [x] Sparse three-tile desktop/mobile screenshots and six-faction greyscale review.
+- [x] 21 browser integration tests and production build passed.
+- [ ] Survey Atlas fresh clone, clean install, all 91 tests, typecheck and dev startup.
+- [ ] Real MetaMask review and new Sepolia screenshots.
+- [ ] Review before merge/publication.
+
+No gameplay changes or redeployment. Dark theme, block ruler, pip animations, capture stamps and activity feeds remain deferred. Feature freeze remains **26 October 2026**. The tests use a local wallet adapter; actual MetaMask acceptance remains a manual step.
+
+## Earlier clarity pass (historical)
+
 Submission baseline: tag `v1-submission-ready` at `da795a0`. Work branch: `ui/conquest-clarity`. The Solidity contract and deployed Sepolia address remain unchanged.
 
 ## Agreed scope

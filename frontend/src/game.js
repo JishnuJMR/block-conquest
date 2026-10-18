@@ -39,9 +39,9 @@ export function ownerIdentities(tiles, known = []) {
   const addresses = [...new Set(known.filter(isAddress).map(owner => owner.toLowerCase()))];
   const newcomers = leaderboard(tiles).map(row => row.owner.toLowerCase()).sort();
   for (const owner of newcomers) if (!addresses.includes(owner)) addresses.push(owner);
-  const palette = [205, 280, 35, 155, 345, 65, 235, 180, 15, 305];
+  const palette = [8, 174, 265, 210, 135, 320, 235, 185, 355, 280];
   return new Map(addresses.map((owner, index) => [owner, {
-    label: `P${index + 1}`, hue: palette[index % palette.length],
+    label: `P${index + 1}`, hue: palette[index % palette.length], pattern: index % 6, shape: index % 6,
   }]));
 }
 

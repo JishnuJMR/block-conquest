@@ -32,7 +32,7 @@ async function openBoard(page, { chain = '0x7a69', wallet = true } = {}) {
     localStorage.setItem('block-conquest:board', JSON.stringify({ chain: 31337, address }));
     if (!wallet) return;
     const listeners = new Map();
-    const control = { account, chain, connected: false, rejectNext: false, holdNext: false, release: null };
+    const control = { account, chain, connected: false, rejectNext: false, holdNext: false, release: null, revokeUnsupported: false, revokeCount: 0 };
     const emit = (name, value) => (listeners.get(name) || []).forEach(fn => fn(value));
     window.__wallet = control;
     control.changeAccount = value => { control.account = value; control.connected = Boolean(value); emit('accountsChanged', value ? [value] : []); };
@@ -45,6 +45,11 @@ async function openBoard(page, { chain = '0x7a69', wallet = true } = {}) {
         if (method === 'eth_chainId') return control.chain;
         if (method === 'eth_accounts') return control.connected ? [control.account] : [];
         if (method === 'eth_requestAccounts') { control.connected = true; return [control.account]; }
+        if (method === 'wallet_revokePermissions') {
+          control.revokeCount++;
+          if (control.revokeUnsupported) throw Object.assign(new Error('Unsupported method'), { code: 4200 });
+          control.connected = false; emit('accountsChanged', []); return null;
+        }
         if (method === 'wallet_switchEthereumChain') { control.changeChain(params[0].chainId); return null; }
         if (method === 'eth_sendTransaction') {
           if (control.rejectNext) { control.rejectNext = false; throw Object.assign(new Error('User rejected request'), { code: 4001 }); }
@@ -129,6 +134,7 @@ test('instructions persist and ownership labels survive reloads and account chan
   await page.locator('#dismiss-guide').click();
   await expect(page.locator('#conquest-guide')).toBeHidden();
   await expect(page.locator('#show-guide')).toBeFocused();
+  const pattern = await cell(page, 0).getAttribute('data-pattern');
   const marker = await cell(page, 0).locator('.owner-marker').textContent();
   const other = await cell(page, 1).locator('.owner-marker').textContent();
   expect(marker).not.toBe(other);
@@ -139,7 +145,9 @@ test('instructions persist and ownership labels survive reloads and account chan
   await expect(cell(page, 0).locator('.owner-marker')).toHaveText(marker);
   await page.evaluate(account => window.__wallet.changeAccount(account), await bob.getAddress());
   await expect(cell(page, 1)).toHaveAttribute('aria-label', /your tile/);
-  await expect(cell(page, 0).locator('.owner-marker')).toHaveText(marker);
+  await expect(cell(page, 0).locator('.owner-marker')).toHaveText(/^P\d+$/);
+  await expect(cell(page, 1).locator('.owner-marker')).toHaveText('You');
+  await expect(cell(page, 0)).toHaveAttribute('data-pattern', pattern);
   await page.locator('#show-guide').click();
   await expect(page.locator('#conquest-guide')).toBeVisible();
 });
@@ -313,4 +321,119 @@ test('live board screenshots, keyboard navigation, and mobile layout', async ({ 
     });
   }))).toBe(true);
   expect(pageErrors).toEqual([]);
+});
+
+test('disconnect revokes wallet access, unloads the board and allows explicit reconnection', async ({ page }) => {
+  await (await game.claim(0, 0)).wait();
+  await openBoard(page); await connect(page); await cell(page, 0).click();
+  await page.locator('#disconnect').click();
+  await expect(page.locator('#tx-title')).toHaveText('Wallet disconnected.');
+  await expect(page.locator('#grid')).toHaveAttribute('data-ready', 'false');
+  await expect(page.locator('#board-unloaded')).toBeVisible();
+  await expect(page.locator('#connect')).toBeEnabled();
+  expect(await page.evaluate(() => window.__wallet.revokeCount)).toBe(1);
+  expect(await page.evaluate(() => window.__wallet.connected)).toBe(false);
+  await page.evaluate(account => window.__wallet.changeAccount(account), await bob.getAddress());
+  await expect(page.locator('#grid')).toHaveAttribute('data-ready', 'false');
+  await page.reload();
+  await expect(page.locator('#grid')).toHaveAttribute('data-ready', 'false');
+  await connect(page);
+  await expect(page.locator('#my-score')).toHaveText('1');
+});
+
+test('unsupported permission revocation disconnects locally and explains the manual step', async ({ page }) => {
+  await openBoard(page); await connect(page);
+  await page.evaluate(() => { window.__wallet.revokeUnsupported = true; });
+  await page.locator('#disconnect').click();
+  await expect(page.locator('#tx-title')).toHaveText('Disconnected from this app.');
+  await expect(page.locator('#tx-detail')).toContainText('Dapp connections');
+  await expect(page.locator('#grid')).toHaveAttribute('data-ready', 'false');
+  await page.evaluate(() => window.__wallet.changeChain('0x7a69'));
+  await expect(page.locator('#connect')).toHaveText('Connect wallet ↗');
+  await connect(page);
+});
+
+test('disconnect during wallet confirmation prevents a stale UI result', async ({ page }) => {
+  await openBoard(page); await connect(page); await cell(page, 0).click();
+  await page.evaluate(() => { window.__wallet.holdNext = true; });
+  await page.locator('#claim').click();
+  await expect.poll(() => page.evaluate(() => Boolean(window.__wallet.release))).toBe(true);
+  await page.locator('#disconnect').click();
+  await expect(page.locator('#tx-detail')).toContainText('may still confirm');
+  await page.evaluate(() => window.__wallet.release());
+  await expect.poll(async () => (await game.getTile(0, 0)).owner).toBe(await alice.getAddress());
+  await expect(page.locator('#grid')).toHaveAttribute('data-ready', 'false');
+  await expect(page.locator('#tx-title')).toHaveText('Wallet disconnected.');
+});
+
+test('keyboard attack selection and Escape work, and custom configuration drives instructions', async ({ page }) => {
+  game = await new ContractFactory(artifact.abi, artifact.bytecode, alice).deploy(20, 4, 7);
+  await game.waitForDeployment();
+  await (await game.claim(0, 0)).wait(); await mine(4); await (await game.reinforce(0, 0)).wait();
+  await (await game.connect(bob).claim(1, 0)).wait();
+  await openBoard(page); await connect(page);
+  await expect(page.locator('#guide-build')).toContainText('up to 7');
+  await expect(page.locator('#guide-build')).toContainText('4 blocks');
+  await expect(page.locator('#rule-decay')).toContainText('every 20 blocks');
+  await cell(page, 0).focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('#selection-coordinate')).toHaveText('A1');
+  await page.keyboard.press('Tab'); // Disabled reinforce is skipped; next action is attack.
+  await expect(page.locator('#attack')).toBeFocused();
+  await page.keyboard.press('Enter');
+  // Attack entry returns focus to its source for arrow-key target selection.
+  await expect(cell(page, 0)).toBeFocused();
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
+  await expect(page.locator('#attack-preview')).toBeVisible();
+  await expect(page.locator('#attack-line')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#attack-preview')).toBeHidden();
+  await expect(cell(page, 0)).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#selection-coordinate')).toHaveText('—');
+  await page.locator('#settings summary').focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('#settings')).toHaveAttribute('open', '');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#settings')).not.toHaveAttribute('open');
+  await expect(page.locator('#settings summary')).toBeFocused();
+});
+
+test('a three-tile board remains legible and its primary action is reachable at 360×640', async ({ page }) => {
+  await (await game.claim(7, 0)).wait();
+  await (await game.claim(6, 0)).wait();
+  await (await game.connect(bob).claim(6, 1)).wait();
+  await openBoard(page); await connect(page); await cell(page, 7).click();
+  await page.screenshot({ path: 'docs/screenshots/atlas-sparse-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await cell(page, 0).click();
+  const button = await page.locator('#claim').boundingBox();
+  expect(button.y).toBeGreaterThanOrEqual(0);
+  expect(button.y + button.height).toBeLessThanOrEqual(640);
+  await expect(page.locator('#dock-context')).toContainText('A1');
+  await page.screenshot({ path: 'docs/screenshots/atlas-sparse-mobile.png', fullPage: true });
+  await page.screenshot({ path: 'docs/screenshots/atlas-mobile-viewport.png' });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator('#claim').click();
+  await expect(page.locator('#tx-title')).toHaveText('Claim confirmed.');
+  await expect(page.locator('#dock-feedback')).toHaveText('Claim confirmed.');
+});
+
+test('six factions have distinct greyscale patterns and retain readable labels', async ({ page }) => {
+  for (let i = 0; i < 6; i++) {
+    const signer = await provider.getSigner(i), x = 1 + (i % 3) * 2, y = 1 + Math.floor(i / 3) * 3;
+    await (await game.connect(signer).claim(x, y)).wait();
+    await (await game.connect(signer).claim(x, y + 1)).wait();
+  }
+  await openBoard(page); await connect(page);
+  await expect(page.locator('#leaderboard li')).toHaveCount(6);
+  const patterns = await page.locator('.occupied').evaluateAll(tiles => new Set(tiles.map(tile => getComputedStyle(tile).backgroundImage)).size);
+  expect(patterns).toBe(6);
+  await page.addStyleTag({ content: 'html { filter: grayscale(1); }' });
+  await page.screenshot({ path: 'docs/screenshots/atlas-six-factions-greyscale.png', fullPage: true });
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.screenshot({ path: 'docs/screenshots/atlas-six-factions-mobile-greyscale.png', fullPage: true });
+  expect(await page.locator('.occupied').evaluateAll(tiles => tiles.every(tile => {
+    const rect = tile.getBoundingClientRect();
+    return [...tile.children].every(child => { const childRect = child.getBoundingClientRect(); return childRect.top >= rect.top && childRect.bottom <= rect.bottom; });
+  }))).toBe(true);
 });

@@ -19,7 +19,9 @@ const state = {
   tiles: [], block: 0n, cap: 5n, cooldown: 3n, decay: 10n, score: 0n,
   ready: false, selected: null, attackSource: null, target: null, busy: false, connecting: false,
   epoch: 0, refreshId: 0, operation: 0, readError: '', identities: new Map(), captured: null,
+  pendingTiles: [], disconnecting: false, manuallyDisconnected: false,
 };
+try { state.manuallyDisconnected = localStorage.getItem('block-conquest:disconnected') === 'true'; } catch { /* Session-only preference. */ }
 $('chain').value = String(state.chain);
 $('address').value = state.address;
 
@@ -37,6 +39,16 @@ function updateIdentities() {
   try { localStorage.setItem(key, JSON.stringify(addresses)); } catch { /* Stable for this session even without storage. */ }
 }
 const identity = owner => state.identities.get(owner?.toLowerCase());
+const ownerLabel = owner => sameAddress(owner, state.account) ? 'You' : identity(owner)?.label;
+function insignia(owner) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true'); svg.classList.add('insignia');
+  svg.style.setProperty('--owner-hue', String(identity(owner).hue));
+  const path = document.createElementNS(svg.namespaceURI, 'path');
+  path.setAttribute('d', ['M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18', 'M12 2L23 21H1Z', 'M3 3H21V21H3Z', 'M12 1L23 12L12 23L1 12Z', 'M7 2H17L23 12L17 22H7L1 12Z', 'M8 1H16V8H23V16H16V23H8V16H1V8H8Z'][identity(owner).shape]);
+  path.setAttribute('fill', 'currentColor'); svg.append(path); return svg;
+}
+function announce(text) { $('board-announcement').textContent = text; }
 function showGuide(show) {
   $('conquest-guide').hidden = !show;
   $('show-guide').setAttribute('aria-expanded', String(show));
@@ -61,6 +73,7 @@ function transaction(title, detail, type = '', hash = null, chain = state.chain)
   $('transaction').className = `transaction-card ${type}`;
   $('tx-title').textContent = title;
   $('tx-detail').textContent = detail;
+  $('dock-feedback').textContent = type ? title : '';
   const explorer = NETWORKS[chain]?.explorer;
   $('tx-link').hidden = !hash;
   if (hash) {
@@ -76,13 +89,14 @@ const cells = Array.from({ length: 64 }, (_, index) => {
   const button = document.createElement('button');
   button.className = 'tile';
   button.type = 'button';
+  button.tabIndex = index === 0 ? 0 : -1;
   button.dataset.index = String(index);
   button.addEventListener('click', () => selectTile(index));
   button.addEventListener('keydown', event => {
     const x = index % 8, y = Math.floor(index / 8);
     const next = { ArrowLeft: x > 0 ? index - 1 : index, ArrowRight: x < 7 ? index + 1 : index,
       ArrowUp: y > 0 ? index - 8 : index, ArrowDown: y < 7 ? index + 8 : index }[event.key];
-    if (next != null) { event.preventDefault(); cells[next].focus(); }
+    if (next != null) { event.preventDefault(); cells.forEach((cell, i) => { cell.tabIndex = i === next ? 0 : -1; }); cells[next].focus(); }
   });
   $('grid').append(button);
   return button;
@@ -93,15 +107,26 @@ function render() {
   $('network-badge').textContent = network.name;
   $('connect').textContent = state.connecting ? 'Opening wallet…' : state.account ? shortAddress(state.account) : 'Connect wallet ↗';
   $('connect').title = state.account || 'Connect MetaMask';
-  $('connect').disabled = state.connecting || Boolean(state.account);
+  $('connect').disabled = state.connecting || state.disconnecting || Boolean(state.account);
+  $('disconnect').hidden = !state.account && !state.disconnecting;
+  $('disconnect').disabled = state.disconnecting;
+  $('disconnect').textContent = state.disconnecting ? 'Disconnecting…' : 'Disconnect';
   $('connection-state').textContent = state.account ? `Connected · ${shortAddress(state.account)}` : 'Wallet disconnected';
   const wrongNetwork = state.walletChain != null && state.walletChain !== state.chain;
+  $('network-badge').textContent = wrongNetwork ? 'Wrong network' : network.name;
+  $('network-badge').classList.toggle('wrong', wrongNetwork);
   $('network-notice').hidden = !wrongNetwork;
   $('network-message').textContent = `Your wallet is on chain ${state.walletChain}. Switch to ${network.name} to use this board.`;
   $('refresh').disabled = !state.contract || state.busy;
   $('grid').dataset.ready = String(state.ready);
+  $('grid').dataset.attacking = String(state.attackSource != null && state.ready);
+  $('board-unloaded').hidden = state.ready;
+  $('board-connect').hidden = Boolean(state.account);
+  $('board-connect').disabled = state.connecting || state.disconnecting;
+  $('unloaded-title').textContent = state.readError ? 'The map could not load.' : wrongNetwork ? `Switch to ${network.name}.` : state.account ? 'Loading territory…' : 'Connect to reveal territory.';
+  $('unloaded-detail').textContent = state.readError ? 'Check the message above, then reconnect or refresh.' : state.account && !state.address ? 'Choose a contract in Board settings.' : 'Ownership and power appear after the board loads.';
   $('grid').setAttribute('aria-busy', String(Boolean(state.contract && !state.ready && !state.readError)));
-  const leaders = leaderboard(state.tiles);
+  const leaders = leaderboard(state.ready ? state.tiles : []);
   const claimed = leaders.reduce((sum, row) => sum + row.score, 0);
   $('my-score').textContent = state.ready ? String(state.score) : '—';
   $('claimed-count').replaceChildren(document.createTextNode(state.ready ? String(claimed) : '—'));
@@ -112,6 +137,7 @@ function render() {
   $('rule-decay').textContent = state.ready ? `Lose 1 power every ${state.decay} blocks, down to a floor of 1. Ownership stays yours.` : 'Power decays over blocks, but never below 1 on an owned tile.';
   $('cap-chip').textContent = `Cap ${state.ready ? state.cap : '—'}`;
   $('cooldown-chip').textContent = `Cooldown ${state.ready ? state.cooldown + ' blocks' : '—'}`;
+  $('guide-build').textContent = state.ready ? `Add 1 effective power, up to ${state.cap}. Reinforcement is ready ${state.cooldown} blocks after a claim, reinforcement or attack.` : 'Reinforce when ready. Load the board to see its power cap and cooldown.';
   $('contract-footer').textContent = state.address ? `${network.name} · ${shortAddress(state.address)}` : 'Contract not configured';
   $('contract-footer').title = state.address;
   $('board-hint').textContent = !state.ready ? 'Connect to the configured network to load live territory.' : state.attackSource != null
@@ -120,24 +146,36 @@ function render() {
     : 'Select your territory to build power, or claim an empty tile to expand.';
 
   cells.forEach((button, index) => {
-    const tile = state.tiles[index];
+    const tile = state.ready ? state.tiles[index] : null;
     const empty = isEmpty(tile);
     const mine = sameAddress(tile?.owner, state.account);
     const eligible = canAttack(state.tiles, state.attackSource, index, state.account);
-    button.className = `tile${empty ? ' unclaimed' : ' occupied'}${mine ? ' mine' : ''}${index === state.selected ? ' is-selected' : ''}${index === state.attackSource ? ' source' : ''}${eligible ? ' targetable' : ''}${index === state.captured ? ' just-captured' : ''}`;
+    button.className = `tile${empty ? ' unclaimed' : ' occupied'}${mine ? ' mine' : ''}${index === state.selected ? ' is-selected' : ''}${index === state.attackSource ? ' source' : ''}${eligible ? ' targetable' : ''}${index === state.captured ? ' just-captured' : ''}${state.pendingTiles.includes(index) ? ' move-pending' : ''}`;
     button.disabled = !state.ready || state.busy;
     button.style.setProperty('--owner-hue', String(empty ? 0 : identity(tile.owner)?.hue ?? 0));
+    if (empty) delete button.dataset.pattern;
+    else button.dataset.pattern = String(identity(tile.owner).pattern);
     button.setAttribute('aria-pressed', String(index === state.selected));
-    button.setAttribute('aria-label', `${coordinate(index)}: ${!state.ready ? 'not loaded' : empty ? 'unclaimed' : `${mine ? 'your tile' : shortAddress(tile.owner)}, power ${tile.power}, owner ${identity(tile.owner)?.label}`}${eligible ? ', attack available' : ''}`);
+    button.setAttribute('aria-label', `${coordinate(index)}: ${!state.ready ? 'not loaded' : empty ? 'unclaimed' : `${mine ? 'your tile' : shortAddress(tile.owner)}, power ${tile.power}, owner ${ownerLabel(tile.owner)}`}${eligible ? ', attack available' : ''}`);
     button.title = !state.ready ? 'Load a board first' : empty ? `${coordinate(index)} · Unclaimed` : `${coordinate(index)} · ${tile.owner} · Power ${tile.power}`;
     button.replaceChildren();
-    const number = document.createElement('span'); number.className = 'tile-number'; number.textContent = empty ? '+' : String(tile.power); button.append(number);
+    const number = document.createElement('span'); number.className = empty ? 'empty-coordinate' : 'tile-number'; number.textContent = empty ? coordinate(index) : String(tile.power); button.append(number);
     if (!empty) {
       const marker = document.createElement('span'); marker.className = 'owner-marker'; marker.setAttribute('aria-hidden', 'true');
-      marker.textContent = identity(tile.owner)?.label; button.append(marker);
+      marker.textContent = ownerLabel(tile.owner); button.append(marker);
     }
   });
   renderSelection();
+  const preview = state.ready && canAttack(state.tiles, state.attackSource, state.target, state.account);
+  $('attack-line').toggleAttribute('hidden', !preview);
+  if (preview) {
+    const sx = state.attackSource % 8, sy = Math.floor(state.attackSource / 8);
+    const tx = state.target % 8, ty = Math.floor(state.target / 8);
+    const dx = tx - sx, dy = ty - sy;
+    for (const [key, value] of Object.entries({ x1: sx * 100 + 50 + dx * 30, y1: sy * 100 + 50 + dy * 30, x2: tx * 100 + 50 - dx * 30, y2: ty * 100 + 50 - dy * 30 })) $('attack-path').setAttribute(key, value);
+  }
+  document.body.classList.toggle('has-selection', state.ready && state.selected != null);
+  $('dock-context').textContent = !state.ready || state.selected == null ? '' : state.busy ? 'Move in progress · check MetaMask' : preview ? `Estimate: ${coordinate(state.attackSource)} → ${coordinate(state.target)} · ${state.tiles[state.attackSource].power} − ${state.tiles[state.target].power} = ${state.tiles[state.attackSource].power - state.tiles[state.target].power} left · new tile 1` : `${coordinate(state.selected)} · ${isEmpty(state.tiles[state.selected]) ? 'Unclaimed · starts at power 1' : `${ownerLabel(state.tiles[state.selected].owner)} · power ${state.tiles[state.selected].power}`}`;
   $('leaderboard').replaceChildren();
   $('leaderboard-empty').hidden = leaders.length > 0;
   $('leaderboard-empty').textContent = state.ready ? 'The board is waiting for its first conqueror.' : 'Load a board to see its current owners.';
@@ -145,8 +183,9 @@ function render() {
     const li = document.createElement('li');
     const rank = document.createElement('span'); rank.className = 'rank'; rank.textContent = String(i + 1).padStart(2, '0');
     li.style.setProperty('--owner-hue', String(identity(row.owner).hue));
-    const swatch = document.createElement('span'); swatch.className = 'owner-swatch'; swatch.textContent = identity(row.owner).label;
-    const owner = document.createElement('span'); owner.className = 'leader-owner'; owner.textContent = `${shortAddress(row.owner)}${sameAddress(row.owner, state.account) ? ' · You' : ''}`; owner.title = row.owner;
+    const swatch = document.createElement('span'); swatch.className = 'owner-swatch'; swatch.dataset.pattern = String(identity(row.owner).pattern); swatch.append(insignia(row.owner));
+    const owner = document.createElement('span'); owner.className = 'leader-owner'; owner.textContent = ownerLabel(row.owner); owner.title = row.owner;
+    const address = document.createElement('small'); address.textContent = shortAddress(row.owner); owner.append(address);
     const score = document.createElement('strong'); score.textContent = `${row.score} ${row.score === 1 ? 'tile' : 'tiles'}`;
     const share = document.createElement('div'); share.className = 'territory-share';
     const track = document.createElement('div'); track.className = 'share-track'; track.setAttribute('aria-hidden', 'true');
@@ -164,15 +203,17 @@ function renderSelection() {
   $('attack-preview').hidden = true;
   $('selection-coordinate').textContent = tile ? coordinate(state.selected) : '—';
   if (!tile) {
-    $('selection-title').textContent = 'Pick your territory.';
-    $('selection-description').textContent = 'Select any tile to see its owner, power, and available moves.';
+    $('selection-title').textContent = state.ready ? 'Pick your territory.' : 'Your map awaits.';
+    $('selection-description').textContent = state.ready ? 'Select any tile to see its owner, power, and available moves.' : 'Connect MetaMask on the board’s network to load live territory and make your first move.';
     $('claim').hidden = false;
     $('action-help').textContent = 'Every move is a transaction you confirm in MetaMask.';
     return;
   }
   const empty = isEmpty(tile), mine = sameAddress(tile.owner, state.account);
   const remaining = cooldownRemaining(tile, state.block, state.cooldown);
-  $('tile-owner').textContent = empty ? 'Unclaimed' : `${identity(tile.owner).label} · ${mine ? 'You' : shortAddress(tile.owner)}`;
+  $('tile-owner').replaceChildren();
+  if (!empty) $('tile-owner').append(insignia(tile.owner));
+  $('tile-owner').append(document.createTextNode(empty ? 'Unclaimed' : ownerLabel(tile.owner)));
   $('tile-owner').title = empty ? '' : tile.owner;
   $('tile-power').textContent = `${tile.power} / ${state.cap}`;
   $('tile-cooldown').textContent = empty ? 'Starts after claim' : remaining > 0n ? `Ready in ${remaining} ${remaining === 1n ? 'block' : 'blocks'}` : 'Ready';
@@ -196,11 +237,11 @@ function renderSelection() {
     }
     return;
   }
-  $('selection-title').textContent = empty ? state.score === 0n ? 'Your conquest starts here.' : 'Expand your territory.' : mine ? 'Hold your ground.' : 'Enemy territory.';
+  $('selection-title').textContent = empty ? state.score === 0n ? 'Start with this tile.' : 'Claim this tile.' : mine ? 'Your territory.' : 'Enemy territory.';
   $('selection-description').textContent = empty ? `Claim ${coordinate(state.selected)} and start with 1 power.` : mine ? 'Build power, or use this tile to capture an adjacent enemy.' : 'Select one of your adjacent tiles, then choose an attack target.';
   $('claim').hidden = !empty; $('claim').disabled = !empty || state.busy;
   $('reinforce').hidden = !mine; $('reinforce').disabled = !mine || state.busy || remaining > 0n || tile.power >= state.cap;
-  $('reinforce').firstChild.textContent = remaining > 0n ? `Wait ${remaining} blocks ` : tile.power >= state.cap ? 'At power cap ' : 'Reinforce ';
+  $('reinforce').firstChild.textContent = remaining > 0n ? `Wait ${remaining} ${remaining === 1n ? 'block' : 'blocks'} ` : tile.power >= state.cap ? 'At power cap ' : 'Reinforce ';
   const targets = state.tiles.some((_, index) => canAttack(state.tiles, state.selected, index, state.account));
   $('attack').hidden = !mine; $('attack').disabled = !mine || state.busy || !targets;
   $('action-help').textContent = state.busy ? 'Complete the current transaction before making another move.' : mine && !targets
@@ -217,7 +258,9 @@ function selectTile(index) {
     }
     state.target = index;
   }
+  cells.forEach((cell, i) => { cell.tabIndex = i === index ? 0 : -1; });
   state.selected = index; render();
+  announce(`${coordinate(index)} selected. ${$('selection-description').textContent}`);
 }
 
 function resetSession() {
@@ -226,12 +269,20 @@ function resetSession() {
   if (state.busy) transaction('Wallet or board changed.', 'An already submitted transaction may still confirm. Check its hash in MetaMask before sending another move.', 'warning');
   state.busy = false;
   if (state.provider) { state.provider.removeAllListeners(); state.provider.destroy(); }
-  Object.assign(state, { provider: null, contract: null, ready: false, tiles: [], selected: null, attackSource: null, target: null, readError: '' });
+  Object.assign(state, { provider: null, contract: null, ready: false, tiles: [], selected: null, attackSource: null, target: null, readError: '', pendingTiles: [] });
   render();
 }
 
 async function syncWallet(requestAccess = false) {
   resetSession();
+  if (state.manuallyDisconnected && !requestAccess) {
+    state.account = null; state.walletChain = null;
+    notice('Wallet disconnected. Connect MetaMask to load the live board.'); render(); return;
+  }
+  if (requestAccess) {
+    state.manuallyDisconnected = false;
+    try { localStorage.removeItem('block-conquest:disconnected'); } catch { /* Optional storage. */ }
+  }
   const epoch = state.epoch;
   try {
     if (!state.wallet) throw new Error('Install or unlock MetaMask in this browser, then reload the page.');
@@ -275,11 +326,17 @@ async function refreshBoard() {
     ]);
     if (epoch !== state.epoch || id !== state.refreshId) return false;
     if (size !== 8n || grid.length !== 64 || cap < 2n || cooldown < 1n || decay < 1n) throw new Error('This address does not contain a compatible Block Conquest board.');
-    state.tiles = grid.map(tile => ({ owner: getAddress(tile.owner), power: tile.power, lastUpdateBlock: tile.lastUpdateBlock }));
+    const nextTiles = grid.map(tile => ({ owner: getAddress(tile.owner), power: tile.power, lastUpdateBlock: tile.lastUpdateBlock }));
+    const changes = nextTiles.flatMap((tile, index) => {
+      const previous = state.tiles[index];
+      return previous && (!sameAddress(previous.owner, tile.owner) || previous.power !== tile.power) ? [`${coordinate(index)}: ${isEmpty(tile) ? 'unclaimed' : `${sameAddress(tile.owner, account) ? 'your tile' : shortAddress(tile.owner)}, power ${tile.power}`}`] : [];
+    });
+    state.tiles = nextTiles;
     updateIdentities();
     Object.assign(state, { block, score, cap, cooldown, decay, ready: true, readError: '' });
     if (state.attackSource != null && !sameAddress(state.tiles[state.attackSource].owner, account)) state.attackSource = null;
     if (!canAttack(state.tiles, state.attackSource, state.target, account)) state.target = null;
+    if (changes.length) announce(`Board updated. ${changes.slice(0, 4).join('; ')}${changes.length > 4 ? `; and ${changes.length - 4} more tiles changed.` : '.'}`);
     notice(''); render(); return true;
   } catch (error) {
     if (epoch !== state.epoch || id !== state.refreshId) return false;
@@ -296,7 +353,7 @@ async function submitMove(method, indices) {
   const name = { claim: 'Claim', reinforce: 'Reinforcement', attack: 'Attack' }[method];
   let hash = null;
   const current = () => epoch === state.epoch && operation === state.operation;
-  state.busy = true; render();
+  state.busy = true; state.pendingTiles = indices; render();
   transaction('Confirm in MetaMask.', `${name} ${indices.map(coordinate).join(' → ')}. Review the transaction in your wallet.`, 'pending');
   try {
     const [walletChain, accounts] = await Promise.all([wallet.request({ method: 'eth_chainId' }), wallet.request({ method: 'eth_accounts' })]);
@@ -330,8 +387,26 @@ async function submitMove(method, indices) {
       transaction(error.code === 'TRANSACTION_REPLACED' ? 'Transaction replaced.' : 'Move not completed.', error.code === 'TRANSACTION_REPLACED' ? 'The wallet cancelled or replaced this move. Check MetaMask for the final transaction.' : friendlyError(error), 'error', hash, chain);
     }
     await refreshBoard();
-  } finally { if (current()) { state.busy = false; render(); } }
+  } finally { if (current()) { state.busy = false; state.pendingTiles = []; render(); } }
 }
+
+async function disconnectWallet() {
+  if (state.disconnecting) return;
+  const wasBusy = state.busy, wallet = state.wallet;
+  state.disconnecting = true; state.manuallyDisconnected = true;
+  try { localStorage.setItem('block-conquest:disconnected', 'true'); } catch { /* Keep disconnected for this session. */ }
+  state.account = null; state.walletChain = null; resetSession();
+  notice('Wallet disconnected. Connect MetaMask to load the live board.');
+  transaction('Wallet disconnected.', wasBusy ? 'A submitted move may still confirm. Check MetaMask for its result.' : 'Your territory stays on-chain. Reconnect to continue.');
+  try {
+    await wallet.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] });
+  } catch {
+    transaction('Disconnected from this app.', 'Wallet permission could not be removed. To remove it fully, open MetaMask → Dapp connections → this site → Disconnect.', 'warning');
+    if (wasBusy) $('tx-detail').append(' A submitted move may still confirm; check MetaMask.');
+  } finally { state.disconnecting = false; render(); $('connect').focus(); }
+}
+$('disconnect').addEventListener('click', () => void disconnectWallet());
+$('board-connect').addEventListener('click', () => $('connect').click());
 
 $('connect').addEventListener('click', async () => {
   state.connecting = true; render();
@@ -339,6 +414,7 @@ $('connect').addEventListener('click', async () => {
 });
 $('refresh').addEventListener('click', () => void refreshBoard());
 $('open-settings').addEventListener('click', () => { $('settings').open = true; $('address').focus(); });
+$('close-settings').addEventListener('click', () => { $('settings').open = false; $('settings').querySelector('summary').focus(); });
 $('settings-form').addEventListener('submit', async event => {
   event.preventDefault();
   if (state.busy) { $('settings-error').textContent = 'Finish the current transaction before changing boards.'; return; }
@@ -366,9 +442,23 @@ $('switch-network').addEventListener('click', async () => {
 });
 $('claim').addEventListener('click', () => void submitMove('claim', [state.selected]));
 $('reinforce').addEventListener('click', () => void submitMove('reinforce', [state.selected]));
-$('attack').addEventListener('click', () => { state.attackSource = state.selected; state.target = null; render(); });
+$('attack').addEventListener('click', () => { state.attackSource = state.selected; state.target = null; render(); cells[state.attackSource].focus(); announce('Choose an adjacent weaker enemy. Use arrow keys to move, Enter to select, Escape to cancel.'); });
 $('capture').addEventListener('click', () => { if (canAttack(state.tiles, state.attackSource, state.target, state.account)) void submitMove('attack', [state.attackSource, state.target]); });
-$('cancel-attack').addEventListener('click', () => { state.selected = state.attackSource; state.attackSource = null; state.target = null; render(); });
+function cancelAttack() {
+  if (state.busy || state.attackSource == null) return;
+  state.selected = state.attackSource; state.attackSource = null; state.target = null; render();
+  cells[state.selected].focus(); announce('Attack cancelled. Your source tile is selected.');
+}
+$('cancel-attack').addEventListener('click', cancelAttack);
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  if ($('settings').open) { $('close-settings').click(); return; }
+  if (state.busy) return;
+  if (state.attackSource != null) { cancelAttack(); return; }
+  const previous = state.selected;
+  state.selected = null; render();
+  if (previous != null) { cells[previous].focus(); announce('Selection cleared.'); }
+});
 
 function attachWallet(wallet) {
   if (!wallet || state.wallet === wallet || state.account) return;
@@ -381,8 +471,9 @@ function attachWallet(wallet) {
   wallet.on?.('disconnect', walletDisconnected);
   void syncWallet();
 }
-function walletChanged() { void syncWallet(); }
+function walletChanged() { if (!state.manuallyDisconnected && !state.disconnecting) void syncWallet(); }
 function walletDisconnected() {
+  if (state.manuallyDisconnected) return;
   resetSession(); state.account = null; state.walletChain = null;
   notice('Wallet disconnected. Reconnect MetaMask to continue.'); render();
 }

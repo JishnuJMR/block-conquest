@@ -18,10 +18,11 @@ The creation receipt and current values returned by `decayInterval()`, `reinforc
 
 ## Features and technology
 
-- One shared board per contract, with owner colours, player labels, and effective power displayed for every tile.
+- One shared board per contract in a Survey Atlas interface: faction patterns, colours, player labels, and effective power on every owned tile.
 - Claim, reinforce, and capture transactions through MetaMask, with confirmation, pending, success, and error feedback.
 - On-chain ownership scores and a frontend leaderboard with territory-share bars counted from `getGrid()` owners.
 - Attack outcome previews, per-tile block countdowns, dismissible instructions, and confirmed-capture feedback that respects reduced motion.
+- Visible wallet disconnect, an integrated Move panel, and mobile actions that stay within reach.
 - Block-based power decay, reinforcement cooldown, and an immutable power cap.
 - Refresh on new blocks, account/network change handling, and responsive desktop/mobile layouts.
 - No tokens, NFTs, betting, randomness, administrative takeover, or upgrades.
@@ -63,7 +64,11 @@ Power decays by 1 every 10 blocks since the tile's last update, with a floor of 
 
 The UI uses A–H and 1–8; A1 is `(0,0)` and H1 is `(7,0)`. Arrow keys move focus between tiles; Enter/Space selects a tile.
 
-Player markers (`P1`, `P2`, …) identify owners even without colour. Labels are saved per board in this browser and stay stable when ranks or connected accounts change; another browser may assign different labels. Addresses identify the actual players. **How to play** reopens the instructions. Select a tile to see reinforcement readiness and the next power-loss countdown, measured in blocks. Power 1 is the minimum.
+Player markers (`P1`, `P2`, …) and six distinct patterns identify factions beyond colour. Your connected faction reads **You** on the board, Move panel, and leaderboard. Underlying labels are saved per board in this browser and stay stable as ranks change; another browser may assign different labels. Addresses identify the actual players. **How to play** reopens the instructions. Select a tile to see reinforcement readiness and the next power-loss countdown, measured in blocks. Power 1 is the minimum. The displayed cap, cooldown and decay interval come from the contract.
+
+Use **Disconnect** beside the wallet address to clear the app session and request removal of MetaMask's account permission. If the wallet cannot remove that permission, the app explains how to finish through MetaMask's Dapp connections. Disconnecting does not remove your territory or cancel an already submitted transaction. The app stays disconnected until **Connect wallet** is clicked again. Live territory requires a connected wallet; the disconnected board is explicitly marked unloaded.
+
+Arrow keys move between tiles, Enter/Space selects, and Escape cancels attack selection or clears the selected tile. On small screens, the action row stays at the bottom of the viewport and includes the selected coordinate, attack estimate, and transaction feedback.
 
 Selecting an attack target previews **your power − defence = power kept by the source**, with the captured tile starting at 1. This uses the latest loaded block; the contract determines the outcome when the transaction is included.
 
@@ -94,11 +99,11 @@ npm run test:ui
 npm run build
 ```
 
-The suite contains **85 tests**: 62 contract tests, 8 frontend logic tests, and 15 browser integration tests. Run `npm test` before typechecking to generate contract types. Browser tests build the app and start a local node and preview server; ports **8545** and **4173** must be free. They use installed Chrome and a test-only EIP-1193 adapter forwarding to unlocked local Hardhat accounts. They do not automate MetaMask or send public-network transactions.
+The suite contains **91 tests**: 62 contract tests, 8 frontend logic tests, and 21 browser integration tests. Run `npm test` before typechecking to generate contract types. Browser tests build the app and start a local node and preview server; ports **8545** and **4173** must be free. They use installed Chrome and a test-only EIP-1193 adapter forwarding to unlocked local Hardhat accounts. They do not automate MetaMask or send public-network transactions.
 
 Install Google Chrome for browser tests, or set `PLAYWRIGHT_CHANNEL` to `msedge` if Microsoft Edge is installed. Contract and frontend logic tests do not need a browser.
 
-The enhanced UI passed a fresh-clone check on Windows: clean installation, all 85 tests, typechecking, production build, and development-server startup. The earlier submission version was also tested through real MetaMask on Sepolia. See [validation details](docs/VALIDATION.md) for the checked snapshots and the remaining manual UI review.
+See [validation details](docs/VALIDATION.md) for fresh-checkout results and the remaining real MetaMask review of Survey Atlas. Earlier Sepolia evidence is retained with its original UI screenshots.
 
 Coverage includes invalid coordinates/ownership, occupied claims, edges and adjacency, attack power/cost, score updates, caps, exact cooldown/decay boundaries, long inactivity, both effective powers in combat, wallet rejection, stale confirmations, account/network changes, and responsive layout.
 
@@ -115,11 +120,15 @@ Sepolia board in the submission-version UI after a two-account capture: account 
 - [Successful H1 reinforcement to power 2](https://sepolia.etherscan.io/tx/0xaf99d3aa6b37990fee418dbef511ff39a5e450a6f55658a73ba413a87d3de50c)
 - [Earlier Sepolia screenshot after reinforcement and decay back to power 1](docs/screenshots/sepolia-board.png)
 
-Enhanced UI with three players and an attack preview on local Hardhat:
+Survey Atlas with only three tiles claimed on local Hardhat:
+
+![Survey Atlas with a sparse three-tile board and the selected tile's Move panel](docs/screenshots/atlas-sparse-desktop.png)
+
+Three players and an attack estimate:
 
 ![Enhanced Block Conquest UI with owner markers and an attack outcome preview on local Hardhat](docs/screenshots/local-board-desktop.png)
 
-[Mobile view](docs/screenshots/local-board-mobile.png). These are local test images, distinct from the Sepolia screenshot above.
+[Mobile action row at 360×640](docs/screenshots/atlas-mobile-viewport.png) · [Full mobile view](docs/screenshots/atlas-sparse-mobile.png) · [Six factions in greyscale](docs/screenshots/atlas-six-factions-greyscale.png) · [Greyscale mobile view](docs/screenshots/atlas-six-factions-mobile-greyscale.png). These are local test images, distinct from the Sepolia screenshot above.
 
 ## Known limitations
 

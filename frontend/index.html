@@ -1,69 +1,62 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#183c34" />
-    <meta name="description" content="Block Conquest — claim territory, build power, and capture adjacent tiles on a shared on-chain board." />
-    <title>Block Conquest</title>
-  </head>
-  <body>
-    <header class="topbar">
-      <a class="brand" href="./" aria-label="Block Conquest home"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>BLOCK CONQUEST</a>
-      <div class="wallet-bar"><span id="network-badge" class="network-badge">Sepolia</span><button id="connect" class="button light">Connect wallet <span aria-hidden="true">↗</span></button></div>
-    </header>
-    <main>
-      <section class="intro">
-        <div><p class="eyebrow">A SHARED WORLD. ONE TILE AT A TIME.</p><h1>Make your next move.</h1><p class="intro-copy">Claim a corner. Build your power. Conquer the neighbours.</p></div>
-        <div class="intro-meta"><span class="online-dot" aria-hidden="true"></span><span id="connection-state">Wallet disconnected</span><details id="settings"><summary>Board settings</summary><form id="settings-form">
-          <h2>Choose your board</h2><label for="chain">Network</label><select id="chain"><option value="11155111">Ethereum Sepolia</option><option value="31337">Local Hardhat</option></select>
-          <label for="address">Contract address</label><input id="address" placeholder="0x…" autocomplete="off" spellcheck="false" required />
-          <p class="form-help">Use the updated contract with decay and cooldown. Your earlier throwaway board is not compatible.</p><button class="button primary" type="submit">Load board</button><p id="settings-error" role="alert"></p>
-        </form></details></div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#eaeff3" />
+  <meta name="description" content="Block Conquest — a shared territory game on Sepolia. Claim tiles, build power, capture a weaker neighbour." />
+  <title>Block Conquest · Survey Atlas</title>
+</head>
+<body>
+  <a class="skip-link" href="#grid">Skip to the board</a>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Block Conquest home"><svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true"><path d="M2 2h24v12H14v12H2zM18 18h24v24H18z" fill="currentColor"/><path d="M26 26h8v8h-8z" fill="#eaeff3"/></svg><span>BLOCK<br>CONQUEST<span class="brand-edition">SURVEY ATLAS / 001</span></span></a>
+    <div class="wallet-bar"><span id="connection-state" class="connection-state">Wallet disconnected</span><div class="wallet-actions"><button id="connect" class="button primary">Connect wallet ↗</button><button id="disconnect" class="button outline" hidden>Disconnect</button></div></div>
+  </header>
+  <main>
+    <div class="utility-strip"><span id="network-badge" class="network-badge">Sepolia</span><span class="block-readout">BLOCK <strong id="block-number">—</strong></span><span id="sync-note" class="sync-note">Waiting for a board</span>
+      <details id="settings"><summary>Board settings</summary><form id="settings-form">
+        <div class="section-heading"><h2>Choose your board</h2><button id="close-settings" class="icon-button" type="button" aria-label="Close board settings">×</button></div>
+        <label for="chain">Network</label><select id="chain"><option value="11155111">Ethereum Sepolia</option><option value="31337">Local Hardhat</option></select>
+        <label for="address">Contract address</label><input id="address" placeholder="0x…" autocomplete="off" spellcheck="false" required />
+        <p class="form-help">Load a Block Conquest board on the selected network.</p><button class="button primary" type="submit">Load board</button><p id="settings-error" role="alert"></p>
+      </form></details>
+    </div>
+    <p class="objective"><strong>Hold more territory.</strong> Every owned tile adds one to your score.</p>
+    <div id="setup-notice" class="notice"><span id="setup-message">Connect MetaMask to load the live board.</span> <button id="open-settings" class="text-button">Board settings</button></div>
+    <div id="network-notice" class="notice warning" hidden><span id="network-message"></span><button id="switch-network" class="button small">Switch network</button></div>
+    <div class="workspace">
+      <section class="board-card" aria-labelledby="board-title">
+        <div class="section-heading board-heading"><div><p class="eyebrow">01 / THE SHARED BOARD</p><h1 id="board-title">Territory map<span class="title-dot">.</span></h1></div><button id="refresh" class="icon-button" aria-label="Refresh board" title="Refresh board">↻</button></div>
+        <div class="board-status" aria-label="Board statistics"><span><strong id="claimed-count">— / 64</strong> claimed</span><span><strong id="player-count">—</strong> factions</span><span class="your-score">You <strong id="my-score">—</strong> tiles</span></div>
+        <div class="map-wrap">
+          <div class="board-frame"><div class="axis-corner" aria-hidden="true">↗</div><div class="column-labels" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span></div><div class="row-labels" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div class="grid-wrap"><div id="grid" class="grid" role="group" aria-label="Block Conquest board" tabindex="-1"></div><svg id="attack-line" class="attack-line" viewBox="0 0 800 800" aria-hidden="true" hidden><defs><marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs><line id="attack-path" marker-end="url(#arrowhead)"/></svg></div></div>
+          <div id="board-unloaded" class="board-unloaded"><span class="eyebrow">LIVE MAP UNLOADED</span><strong id="unloaded-title">Connect to reveal territory.</strong><span id="unloaded-detail">Ownership and power appear after the board loads.</span><button id="board-connect" class="button primary">Connect MetaMask ↗</button></div>
+        </div>
+        <p id="board-hint" class="board-hint">Connect your wallet to load live territory.</p>
+        <div class="board-key"><span><i class="key empty"></i>Unclaimed</span><span><i class="key selected"></i>Selected</span><span><i class="key target"></i>Attackable</span><span class="power-key">Number = power · label + pattern = owner</span></div>
       </section>
-      <section class="stats" aria-label="Board statistics">
-        <div><span class="stat-label">YOUR TERRITORY</span><strong id="my-score">—</strong><span class="stat-unit">tiles owned</span></div>
-        <div><span class="stat-label">THE WORLD</span><strong id="claimed-count">—<small> / 64</small></strong><span class="stat-unit">tiles claimed</span></div>
-        <div><span class="stat-label">CONQUERORS</span><strong id="player-count">—</strong><span class="stat-unit">current owners</span></div>
-        <div><span class="stat-label">LATEST BLOCK</span><strong id="block-number">—</strong><span class="stat-unit" id="sync-note">Waiting for a board</span></div>
-      </section>
-      <div id="setup-notice" class="notice"><span id="setup-message">Choose the updated contract, then connect MetaMask to play.</span> <button id="open-settings" class="text-button">Board settings</button></div>
-      <div id="network-notice" class="notice warning" hidden><span id="network-message"></span><button id="switch-network" class="button small">Switch network</button></div>
-      <div class="workspace">
-        <section class="board-card" aria-labelledby="board-title">
-          <div class="section-heading"><div><p class="eyebrow">THE BATTLEFIELD</p><h2 id="board-title">64 tiles. Endless possibilities.</h2></div><button id="refresh" class="icon-button" aria-label="Refresh board" title="Refresh board">↻</button></div>
-          <p id="board-hint" class="board-hint">Connect your wallet to explore this board.</p>
-          <div class="guide-toggle"><span>Claim territory. Hold the most tiles.</span><button id="show-guide" class="text-button" aria-controls="conquest-guide" aria-expanded="true">How to play</button></div>
-          <section id="conquest-guide" class="conquest-guide" aria-label="How conquest works">
-            <div class="guide-heading"><strong>How conquest works</strong><button id="dismiss-guide" class="text-button" aria-label="Dismiss how to play">Got it</button></div>
-            <ol class="guide-steps">
-              <li><span class="step-number">01</span><div><strong>Claim</strong><p>Choose any empty tile. Start with 1 power.</p></div></li>
-              <li><span class="step-number">02</span><div><strong>Reinforce</strong><p>Add 1 power when ready. Power fades; ownership stays.</p></div></li>
-              <li><span class="step-number">03</span><div><strong>Capture</strong><p>Attack up, down, left or right. Your power must be greater.</p></div></li>
-            </ol>
-            <p class="guide-footnote">Your score is your tile count. Every move needs a MetaMask confirmation and test ETH for gas.</p>
-          </section>
-          <div class="board-frame"><div class="axis-corner"></div><div class="column-labels" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span></div><div class="row-labels" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div><div id="grid" class="grid" role="group" aria-label="Block Conquest board"></div></div>
-          <div class="board-key"><span><i class="key empty"></i>Unclaimed</span><span><i class="key owned"></i>P1, P2… = owners</span><span><i class="key selected"></i>Selected</span><span class="power-key">Large number = effective power</span></div>
+      <aside class="side-panel">
+        <section class="action-card" aria-labelledby="selection-title">
+          <div class="section-heading"><p class="eyebrow">02 / YOUR MOVE</p><span id="selection-coordinate" class="coordinate">—</span></div>
+          <p class="learning-strip">Claim <span>→</span> Build power <span>→</span> Capture</p>
+          <h2 id="selection-title">Pick your territory.</h2><p id="selection-description">Select a tile to see your next move.</p>
+          <dl id="tile-details" hidden><div><dt>Owner</dt><dd id="tile-owner"></dd></div><div><dt>Effective power</dt><dd id="tile-power"></dd></div><div><dt>Reinforcement</dt><dd id="tile-cooldown"></dd></div><div><dt>Decay</dt><dd id="tile-decay"></dd></div></dl>
+          <section id="attack-preview" class="attack-preview" aria-label="Attack outcome estimate" hidden><p class="eyebrow">ATTACK ESTIMATE</p><div class="combat-equation"><div><strong id="preview-source"></strong><span>Your power</span></div><b aria-hidden="true">−</b><div><strong id="preview-defender"></strong><span>Defence</span></div><b aria-hidden="true">=</b><div><strong id="preview-remaining"></strong><span>Source keeps</span></div></div><p id="preview-result" class="preview-result"></p><p class="preview-note">An estimate from the latest loaded block. Power and ownership may change when your transaction is included.</p></section>
+          <div id="action-dock" class="action-dock"><span id="dock-context" class="dock-context"></span><span id="dock-feedback" class="dock-feedback" aria-hidden="true"></span><div class="actions"><button id="claim" class="button primary" disabled>Claim tile <span aria-hidden="true">＋</span></button><button id="reinforce" class="button primary" hidden disabled>Reinforce <span aria-hidden="true">↑</span></button><button id="attack" class="button outline" hidden disabled>Choose attack target <span aria-hidden="true">↗</span></button><button id="capture" class="button primary" hidden disabled>Confirm attack</button><button id="cancel-attack" class="text-button" hidden>Cancel attack</button></div></div>
+          <p id="action-help" class="form-help">Every move is a transaction you confirm in MetaMask.</p>
+          <section id="transaction" class="transaction-card" aria-live="polite" aria-atomic="true"><span class="transaction-label">MOVE STATUS</span><strong id="tx-title">Ready when you are.</strong><p id="tx-detail">Your transaction progress will appear here.</p><a id="tx-link" target="_blank" rel="noopener noreferrer" hidden>View transaction ↗</a></section>
+          <div class="rule-chips"><span id="cap-chip">Cap —</span><span id="cooldown-chip">Cooldown —</span></div><p id="rule-decay" class="rule-note">Timing is measured in blocks. Load the board to see its rules.</p>
         </section>
-        <aside class="side-panel">
-          <section class="action-card" aria-labelledby="selection-title"><div class="section-heading"><p class="eyebrow">YOUR NEXT MOVE</p><span id="selection-coordinate" class="coordinate">—</span></div><h2 id="selection-title">Pick your territory.</h2><p id="selection-description">Select any tile to see its owner, power, and available moves.</p>
-            <dl id="tile-details" hidden><div><dt>Owner</dt><dd id="tile-owner"></dd></div><div><dt>Effective power</dt><dd id="tile-power"></dd></div><div><dt>Reinforcement</dt><dd id="tile-cooldown"></dd></div><div><dt>Decay</dt><dd id="tile-decay"></dd></div></dl>
-            <section id="attack-preview" class="attack-preview" aria-label="Attack outcome preview" hidden>
-              <p class="eyebrow">ATTACK PREVIEW</p>
-              <div class="combat-equation"><div><strong id="preview-source"></strong><span>Your power</span></div><b aria-hidden="true">−</b><div><strong id="preview-defender"></strong><span>Defence</span></div><b aria-hidden="true">=</b><div><strong id="preview-remaining"></strong><span>Source keeps</span></div></div>
-              <p id="preview-result" class="preview-result"></p>
-              <p class="preview-note">Based on the latest loaded block. The result depends on power and ownership when your transaction is included.</p>
-            </section>
-            <div class="actions"><button id="claim" class="button primary" disabled>Claim tile <span aria-hidden="true">＋</span></button><button id="reinforce" class="button primary" hidden disabled>Reinforce <span aria-hidden="true">↑</span></button><button id="attack" class="button outline" hidden disabled>Choose attack target <span aria-hidden="true">↗</span></button><button id="capture" class="button primary" hidden disabled>Confirm attack</button><button id="cancel-attack" class="text-button" hidden>Cancel attack</button></div><p id="action-help" class="form-help">Every move is a transaction you confirm in MetaMask.</p>
-          </section>
-          <section id="transaction" class="transaction-card" aria-live="polite" aria-atomic="true"><span class="transaction-label">TRANSACTION LOG</span><strong id="tx-title">Ready when you are.</strong><p id="tx-detail">Wallet confirmations and transaction results appear here.</p><a id="tx-link" target="_blank" rel="noopener noreferrer" hidden>View transaction ↗</a></section>
-          <section class="rules-card"><p class="eyebrow">FIELD NOTES</p><h3>Power fades. Territory stays.</h3><p id="rule-decay">Power decays over blocks, but never below 1 on an owned tile.</p><p>Attack an adjacent enemy with strictly greater power. Your source loses the defender’s power; the captured tile starts at 1.</p><div class="rule-chips"><span id="cap-chip">Cap —</span><span id="cooldown-chip">Cooldown —</span></div></section>
-        </aside>
-      </div>
-      <section class="leaderboard-card" aria-labelledby="leaderboard-title"><div class="section-heading"><div><p class="eyebrow">THE TERRITORY RACE</p><h2 id="leaderboard-title">Leaderboard</h2></div><span class="muted">Territory share of all 64 tiles · labels local to this browser</span></div><div id="leaderboard-empty" class="empty-leaderboard">The board is waiting for its first conqueror.</div><ol id="leaderboard" class="leaderboard"></ol></section>
-      <footer><span>BLOCK CONQUEST <span class="footer-divider">/</span> A university DApp experiment</span><span id="contract-footer">Contract not configured</span><span>Programmed rules. Shared territory.</span></footer>
-    </main>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+      </aside>
+    </div>
+    <section class="leaderboard-card" aria-labelledby="leaderboard-title"><div class="section-heading"><div><p class="eyebrow">03 / CURRENT OWNERS</p><h2 id="leaderboard-title">Factions</h2></div><span class="muted">Territory share of all 64 tiles</span></div><div id="leaderboard-empty" class="empty-leaderboard">Load a board to see its current owners.</div><ol id="leaderboard" class="leaderboard"></ol><p class="label-note">Player labels stay with their addresses in this browser. Your faction is marked “You”.</p></section>
+    <section class="guide-section"><div class="section-heading"><div><p class="eyebrow">04 / FIELD GUIDE</p><h2>How conquest works</h2></div><button id="show-guide" class="text-button" aria-controls="conquest-guide" aria-expanded="true">How to play</button></div>
+      <div id="conquest-guide" class="conquest-guide"><ol class="guide-steps"><li><span class="step-number">01</span><div><strong>Claim territory</strong><p>Choose any empty tile. It becomes yours with 1 power.</p></div></li><li><span class="step-number">02</span><div><strong>Build power</strong><p id="guide-build">Reinforce when ready. The board sets its power cap and cooldown.</p></div></li><li><span class="step-number">03</span><div><strong>Capture a weaker neighbour</strong><p>Attack up, down, left or right. Your power must be greater. Your source pays the defender’s power; your new tile starts at 1.</p></div></li></ol><div class="guide-bottom"><p>Power decays; ownership stays. Every move needs a MetaMask confirmation and test ETH for gas.</p><button id="dismiss-guide" class="text-button" aria-label="Dismiss how to play">Got it</button></div></div>
+    </section>
+    <p id="board-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+    <footer><span>BLOCK CONQUEST <span class="footer-divider">/</span> SURVEY ATLAS</span><span id="contract-footer">Contract not configured</span><span>Programmed rules. Shared territory.</span></footer>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
 </html>
