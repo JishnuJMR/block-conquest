@@ -8,7 +8,24 @@ Match checks cover distinct seats, simultaneous starting tiles, spectator restri
 
 The saved local match lobby, active-match and recorded-result screenshots were visually reviewed. These tests use local Hardhat contracts and a test-only wallet adapter. The match version has not been deployed or manually tested through MetaMask on Sepolia. Prior public-network evidence below applies only to the open-board version.
 
-Fresh-checkout verification caught a TypeScript typing issue in the match Ignition rehearsal: connecting its generic contract returned `BaseContract`. The rehearsal now obtains the generated `BlockConquestMatch` type through `getContractAt`. This changes test typing only. Final fresh-checkout results are recorded after completion. The previous version is preserved at tag `v3-survey-atlas-open-board` (`d9af00b`).
+Fresh-checkout verification caught a TypeScript typing issue in the match Ignition rehearsal: connecting its generic contract returned `BaseContract`. The rehearsal now obtains the generated `BlockConquestMatch` type through `getContractAt`. This changes test typing only. The previous version is preserved at tag `v3-survey-atlas-open-board` (`d9af00b`).
+
+### Match fresh checkout
+
+A new local clone was created with `--no-hardlinks` in an empty temporary folder from `60da48f`, then fast-forwarded to **`f2aa1f4`** for the rehearsal typing fix. No dependencies, artifacts, generated types, caches or `.env.local` were copied. Windows 11, Node.js 24.13.0, npm 11.6.2 and installed Chrome were used.
+
+| Check | Result |
+| --- | --- |
+| npm ci | 207 packages installed; audit reported zero vulnerabilities |
+| npm test | 90 contract tests passed |
+| npm run typecheck | Passed |
+| npm run test:frontend | 12 logic tests passed |
+| npm run test:ui | Production build and all 29 browser tests passed |
+| npm run dev | Compile/export and Vite startup passed on port 5173 |
+| HTTP readiness | HTTP 200; match panel, join and result controls present |
+| README/reference links | All local links in README and docs/MATCH.md resolve |
+
+All **131 tests** passed in the fresh checkout. The temporary development server was stopped after checking it. No Sepolia transaction or GitHub publication was performed. New match deployment, actual MetaMask acceptance and a real match-result screenshot remain the next manual milestone.
 
 ## Survey Atlas fresh checkout — 18 October 2026
 

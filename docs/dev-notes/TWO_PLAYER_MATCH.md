@@ -12,5 +12,5 @@ The frontend explicitly distinguishes match contracts from the existing open-boa
 - [x] Match contract and lifecycle/gameplay tests: 90 contract checks including both versions and deployment rehearsals.
 - [x] Match UI and browser tests, including deadline and wallet changes: 12 logic and 29 browser checks passed.
 - [x] Local screenshots, README and deployment instructions.
-- [ ] Fresh-checkout validation.
+- [x] Fresh-checkout validation at `f2aa1f4`: clean install, all 131 tests, typecheck, build, dev startup and HTTP 200. See ../VALIDATION.md.
 - [x] Review local desktop result and mobile lobby screenshots before requesting Sepolia deployment.

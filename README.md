@@ -100,6 +100,8 @@ npm run build
 
 The suite contains **90 contract tests**, **12 frontend logic tests** and **29 browser integration tests**. Contract coverage includes joining, permissions, exact deadline boundaries, either winner/draw, immutable final state, all original tile rules, long inactivity and attacks using both effective powers. Browser tests exercise full matches, spectators, rejection, late transactions, disconnect/reconnect and mobile reachability, alongside the open-board regressions.
 
+All **131 tests**, typechecking, production build and development-server startup passed in a fresh local Git checkout on Windows. The new match contract still needs a real Sepolia deployment and MetaMask acceptance run before it replaces the earlier submission evidence.
+
 Run `npm test` before typechecking to generate types. Browser tests need installed Chrome and free ports **8545/4173**. Set `PLAYWRIGHT_CHANNEL=msedge` to use installed Edge instead. Browser automation uses real local contracts and a test-only wallet adapter; it does not automate the MetaMask extension or submit public-network transactions. Validation details are in [docs/VALIDATION.md](docs/VALIDATION.md).
 
 `npm run build` emits `frontend/dist/`; `npm run preview` serves it at **http://127.0.0.1:4173**. Building does not publish the application.
