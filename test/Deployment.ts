@@ -6,7 +6,8 @@ import BlockConquestMatch from "../ignition/modules/BlockConquestMatch.js";
 describe("Current deployment rehearsal (local only)", function () {
   it("deploys a match through Ignition, starts with two players and finalizes a draw", async function () {
     const { ignition, ethers, networkHelpers } = await network.create();
-    const { game } = await ignition.deploy(BlockConquestMatch);
+    const deployed = await ignition.deploy(BlockConquestMatch);
+    const game = await ethers.getContractAt("BlockConquestMatch", await deployed.game.getAddress());
     const [, second] = await ethers.getSigners();
     expect(await game.matchDuration()).to.equal(100);
     await game.join();

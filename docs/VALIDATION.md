@@ -8,7 +8,7 @@ Match checks cover distinct seats, simultaneous starting tiles, spectator restri
 
 The saved local match lobby, active-match and recorded-result screenshots were visually reviewed. These tests use local Hardhat contracts and a test-only wallet adapter. The match version has not been deployed or manually tested through MetaMask on Sepolia. Prior public-network evidence below applies only to the open-board version.
 
-Fresh-checkout verification for this match snapshot is recorded after completion. The previous version is preserved at tag `v3-survey-atlas-open-board` (`d9af00b`).
+Fresh-checkout verification caught a TypeScript typing issue in the match Ignition rehearsal: connecting its generic contract returned `BaseContract`. The rehearsal now obtains the generated `BlockConquestMatch` type through `getContractAt`. This changes test typing only. Final fresh-checkout results are recorded after completion. The previous version is preserved at tag `v3-survey-atlas-open-board` (`d9af00b`).
 
 ## Survey Atlas fresh checkout — 18 October 2026
 
