@@ -1,5 +1,9 @@
 # Submission and UI validation
 
+## Final publication review — 21 October 2026
+
+The complete suite passed again before publication: 90 contract tests, 12 frontend logic tests and 29 browser tests (131 total), plus TypeScript checking and the production build. All local Markdown links resolved. A tracked-file credential-pattern scan found no matches. Review found no blocking code issues; outdated branch setup instructions and completed-match guidance were corrected. Automated browser checks use local contracts, not MetaMask or Sepolia.
+
 ## Completed Sepolia match — 21 October 2026
 
 The real MetaMask session completed both joins, B's B1 claim and reinforcement, B1 → A1 capture, deadline expiry and result recording. Result transaction [`0x87468742…2764eb37`](https://sepolia.etherscan.io/tx/0x874687427e1221263cf0a5d55ec697fb2d0f26fbb8eda130365128fb2764eb37) has receipt status 1 at block 11957401. Its match-address log is `MatchFinalized(B,0,3)`; current contract reads confirm phase 3, finalized true, winner B and scores A: 0/B: 3. B owns A1, B1 and H8 at effective power 1.

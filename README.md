@@ -14,7 +14,7 @@ The two-player contract is **`BlockConquestMatch`**, deployed on Sepolia and tes
 
 The published match above is **complete**. Load it to inspect the final board and recorded result. To play a fresh match, deploy another instance using the steps below or use the local deployment command.
 
-The completed open-board version is preserved at Git tag `v3-survey-atlas-open-board`. Its [Sepolia deployment and transaction evidence](docs/DEPLOYMENT.md) and [real MetaMask screenshot](docs/screenshots/sepolia-survey-atlas.png) apply to that earlier contract, which has no match deadline. The match version is developed on `feature/two-player-match`.
+The completed open-board version is preserved at Git tag `v3-survey-atlas-open-board`. Its [Sepolia deployment and transaction evidence](docs/DEPLOYMENT.md) and [real MetaMask screenshot](docs/screenshots/sepolia-survey-atlas.png) apply to that earlier contract, which has no match deadline.
 
 ## How a match works
 
@@ -45,17 +45,16 @@ Use Git, npm and Node.js **24 LTS** (Hardhat requires at least 22.13.0). Initial
 ```sh
 git clone https://github.com/JishnuJMR/block-conquest.git
 cd block-conquest
-git switch feature/two-player-match
 npm ci
 npm test
 npm run dev
 ```
 
-The match branch must be published before a remote clone can check it out. In the current local checkout, start at `npm ci`. Open **http://127.0.0.1:5173**. If that port is occupied, use `npm run dev -- --port 5174` and open port 5174 instead.
+In an existing checkout, start at `npm ci`. Open **http://127.0.0.1:5173**. If that port is occupied, use `npm run dev -- --port 5174` and open port 5174 instead.
 
 **Windows PowerShell:** if script policy blocks `npm.ps1`, use `npm.cmd` in place of `npm`. No execution-policy change is needed.
 
-For the Sepolia match, select **Ethereum Sepolia**, **Two-player match**, and `0x98f9726a04Fc43b6145A270f61c9a97243650A33` under **Board settings**. Click **Load board**, then **Connect wallet**. The first two distinct accounts may join; the second join starts the countdown. To use the earlier Sepolia open board instead, select **Open board (earlier version)** and its separate address from the table above.
+For the Sepolia match, select **Ethereum Sepolia**, **Two-player match**, and `0x98f9726a04Fc43b6145A270f61c9a97243650A33` under **Board settings**. Click **Load board**, then **Connect wallet** to inspect the completed match. To play, deploy a fresh match using the instructions below. To use the earlier Sepolia open board instead, select **Open board (earlier version)** and its separate address from the table above.
 
 For a local match, use two additional terminals:
 

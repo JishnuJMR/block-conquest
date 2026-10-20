@@ -14,7 +14,7 @@ npm run dev
 
 Open **http://127.0.0.1:5173** in the browser containing MetaMask. This command compiles the current contract, exports its public ABI, and starts Vite. It does not deploy a contract. Press Ctrl+C in that terminal when finished.
 
-Set Ethereum Sepolia and `0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3` in **Board settings**, or copy the public defaults from frontend/.env.example to frontend/.env.local before starting Vite. Claim, reinforcement, and decay have been observed with real MetaMask; deployment parameters and transaction events have also been independently checked. Browser-saved settings override environment defaults.
+Set **Ethereum Sepolia**, **Two-player match**, and `0x98f9726a04Fc43b6145A270f61c9a97243650A33` in **Board settings**, or copy the public defaults from frontend/.env.example to frontend/.env.local before starting Vite. This match is complete: inspect its final board and recorded result, or deploy a fresh match to play. See [match deployment evidence](MATCH_DEPLOYMENT.md). Browser-saved settings override environment defaults.
 
 On Windows PowerShell, substitute `npm.cmd` for `npm` if npm.ps1 is blocked. The commands elsewhere in this guide are portable unless explicitly marked PowerShell.
 
@@ -22,13 +22,15 @@ On Windows PowerShell, substitute `npm.cmd` for `npm` if npm.ps1 is blocked. The
 
 1. Open **Board settings** above the board.
 2. Choose **Ethereum Sepolia** or **Local Hardhat**.
-3. Paste the public address of the updated contract on that network and click **Load board**.
+3. Choose **Two-player match** for `BlockConquestMatch` or **Open board (earlier version)** for `BlockConquest`. Paste its public address on that network and click **Load board**.
 4. Click **Connect wallet** and approve access in MetaMask.
 5. If prompted by the page, click **Switch network** and approve the switch in MetaMask.
 
 The address and chosen network are saved in your browser's local storage. No keys are stored by this app. If desired, copy `frontend/.env.example` to `frontend/.env.local` and set public defaults there; browser-saved Board settings override those defaults. Restart Vite after changing environment defaults. All `VITE_` values are exposed to the browser: never put private keys, seed phrases, RPC secrets, or passwords in them.
 
 ## Play
+
+For a fresh two-player match, the first two distinct wallets join; the second join starts the countdown. Only those players can move before the deadline. After the deadline, anyone can record the final result. See [match rules](MATCH.md).
 
 - **Claim:** select an empty tile, click **Claim tile**, and confirm in MetaMask.
 - **Reinforce:** select your tile. Wait until the cooldown reads **Ready**, then click **Reinforce** and confirm. The button is disabled at the cap.
@@ -97,9 +99,11 @@ For a production build alone, run `npm run build`. Files are emitted to `fronten
 
 ## Screenshots and validation
 
+The [completed Sepolia match screenshot](screenshots/sepolia-match-result.png) is embedded in README. It shows a real MetaMask session and the recorded 3-0 result; see [match evidence](MATCH_DEPLOYMENT.md).
+
 Browser tests capture the app showing a real local Hardhat board with three current owners:
 
 - [Desktop screenshot](screenshots/local-board-desktop.png)
 - [Mobile screenshot](screenshots/local-board-mobile.png)
 
-These are labelled as local screenshots. The [Survey Atlas Sepolia screenshot](screenshots/sepolia-survey-atlas.png) shows a real MetaMask session and is embedded in README. The [earlier capture screenshot](screenshots/sepolia-capture.png) preserves the original two-account capture evidence. The creation receipt, parameters, claim, reinforcement and capture events, and normalized runtime comparison are documented in [DEPLOYMENT.md](DEPLOYMENT.md). Fresh-checkout tests and manual wallet acceptance are recorded in [VALIDATION.md](VALIDATION.md).
+These are labelled as local screenshots. The [Survey Atlas Sepolia screenshot](screenshots/sepolia-survey-atlas.png) shows a real MetaMask session with the earlier open-board contract. The [earlier capture screenshot](screenshots/sepolia-capture.png) preserves the original two-account capture evidence. The creation receipt, parameters, claim, reinforcement and capture events, and normalized runtime comparison are documented in [DEPLOYMENT.md](DEPLOYMENT.md). Fresh-checkout tests and manual wallet acceptance are recorded in [VALIDATION.md](VALIDATION.md).
