@@ -1,12 +1,22 @@
 # Submission and UI validation
 
+## Completed Sepolia match — 21 October 2026
+
+The real MetaMask session completed both joins, B's B1 claim and reinforcement, B1 → A1 capture, deadline expiry and result recording. Result transaction [`0x87468742…2764eb37`](https://sepolia.etherscan.io/tx/0x874687427e1221263cf0a5d55ec697fb2d0f26fbb8eda130365128fb2764eb37) has receipt status 1 at block 11957401. Its match-address log is `MatchFinalized(B,0,3)`; current contract reads confirm phase 3, finalized true, winner B and scores A: 0/B: 3. B owns A1, B1 and H8 at effective power 1.
+
+MatchStarted records start 11956131 and deadline 11956231. Finalization occurred after the deadline, as allowed. The screenshot supplied in chat agrees with the receipt and final board; its project screenshot file has not yet been saved. The third-account spectator flow, return after losing all tiles, draw and disconnect/reconnect are covered by local automated tests; they are not claimed as additional live checks in this match. See [full match evidence](MATCH_DEPLOYMENT.md).
+
+## Match deployment configuration read
+
+The match at [`0x98f9726a04Fc43b6145A270f61c9a97243650A33`](https://sepolia.etherscan.io/address/0x98f9726a04Fc43b6145A270f61c9a97243650A33) was checked using `https://ethereum-sepolia-rpc.publicnode.com` on chain 11155111 at block **11956053**. Contract code is present. Reads returned `MATCH_VERSION = 1`, decay interval 10, reinforcement cooldown 3, maximum power 5, and duration 100. Phase was 0 (Waiting), both seats were zero addresses, start/end blocks were 0, and finalized was false. These reads confirm the exposed settings and lobby state; creation receipt, source/runtime verification and live gameplay are separate checks.
+
 ## Two-player match — 20 October 2026
 
 The working checkout passed **131 tests**: 90 contract tests (62 existing open-board checks plus 28 match/rehearsal checks), 12 frontend logic tests and 29 browser tests. Typechecking and the production build passed. The original `BlockConquest.sol`, dependencies and Hardhat compiler configuration are unchanged.
 
 Match checks cover distinct seats, simultaneous starting tiles, spectator restrictions, the last playable block, rejection at the exact deadline, either winner and a draw, public finalization, duplicate finalization, frozen scores/power and long-inactivity combat. Browser checks exercise joining from two accounts, capture, countdown, winner/draw recording, rejection, deadline expiry during wallet confirmation, reconnect, old-contract mode mismatch, and 360×640 reachability. P1/P2 labels agree with the seats.
 
-The saved local match lobby, active-match and recorded-result screenshots were visually reviewed. These tests use local Hardhat contracts and a test-only wallet adapter. The match version has not been deployed or manually tested through MetaMask on Sepolia. Prior public-network evidence below applies only to the open-board version.
+The saved local match lobby, active-match and recorded-result screenshots were visually reviewed. These tests use local Hardhat contracts and a test-only wallet adapter. This automated validation preceded the Sepolia deployment and live match recorded above. Older public-network evidence farther below applies to the open-board version.
 
 Fresh-checkout verification caught a TypeScript typing issue in the match Ignition rehearsal: connecting its generic contract returned `BaseContract`. The rehearsal now obtains the generated `BlockConquestMatch` type through `getContractAt`. This changes test typing only. The previous version is preserved at tag `v3-survey-atlas-open-board` (`d9af00b`).
 

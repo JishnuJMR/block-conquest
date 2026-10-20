@@ -4,13 +4,15 @@ A university DApp built with Solidity, ethers.js, MetaMask and Vite. Two players
 
 ## Version and network
 
-The two-player contract is **`BlockConquestMatch`**. It is implemented for local testing and has **not yet been deployed to Sepolia**. A new deployment is required to play matches on Sepolia; the earlier contract cannot be upgraded.
+The two-player contract is **`BlockConquestMatch`**, deployed on Sepolia and tested through a complete two-account match. Player 2 won **3–0**; the finalization receipt, game events and current scores were checked through Sepolia RPC. See [match deployment evidence](docs/MATCH_DEPLOYMENT.md). The earlier open-board contract remains a separate deployment.
 
 | Version | Network | Address / status |
 | --- | --- | --- |
 | Two-player match | Local Hardhat (`31337`) | Run `npm run deploy:local`; use the printed address |
-| Two-player match | Ethereum Sepolia (`11155111`) | Not deployed |
+| Two-player match | Ethereum Sepolia (`11155111`) | [`0x98f9726a04Fc43b6145A270f61c9a97243650A33`](https://sepolia.etherscan.io/address/0x98f9726a04Fc43b6145A270f61c9a97243650A33) |
 | Earlier open board | Ethereum Sepolia (`11155111`) | [`0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`](https://sepolia.etherscan.io/address/0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3) — select **Open board (earlier version)** |
+
+The published match above is **complete**. Load it to inspect the final board and recorded result. To play a fresh match, deploy another instance using the steps below or use the local deployment command.
 
 The completed open-board version is preserved at Git tag `v3-survey-atlas-open-board`. Its [Sepolia deployment and transaction evidence](docs/DEPLOYMENT.md) and [real MetaMask screenshot](docs/screenshots/sepolia-survey-atlas.png) apply to that earlier contract, which has no match deadline. The match version is developed on `feature/two-player-match`.
 
@@ -53,7 +55,7 @@ The match branch must be published before a remote clone can check it out. In th
 
 **Windows PowerShell:** if script policy blocks `npm.ps1`, use `npm.cmd` in place of `npm`. No execution-policy change is needed.
 
-For the existing Sepolia open board, select **Ethereum Sepolia**, **Open board (earlier version)** and the address in the table above under **Board settings**. Click **Load board**, then **Connect wallet**. It retains the original rules without a winner.
+For the Sepolia match, select **Ethereum Sepolia**, **Two-player match**, and `0x98f9726a04Fc43b6145A270f61c9a97243650A33` under **Board settings**. Click **Load board**, then **Connect wallet**. The first two distinct accounts may join; the second join starts the countdown. To use the earlier Sepolia open board instead, select **Open board (earlier version)** and its separate address from the table above.
 
 For a local match, use two additional terminals:
 
@@ -100,13 +102,15 @@ npm run build
 
 The suite contains **90 contract tests**, **12 frontend logic tests** and **29 browser integration tests**. Contract coverage includes joining, permissions, exact deadline boundaries, either winner/draw, immutable final state, all original tile rules, long inactivity and attacks using both effective powers. Browser tests exercise full matches, spectators, rejection, late transactions, disconnect/reconnect and mobile reachability, alongside the open-board regressions.
 
-All **131 tests**, typechecking, production build and development-server startup passed in a fresh local Git checkout on Windows. The new match contract still needs a real Sepolia deployment and MetaMask acceptance run before it replaces the earlier submission evidence.
+All **131 tests**, typechecking, production build and development-server startup passed in a fresh local Git checkout on Windows. A live two-player MetaMask match also completed on Sepolia: both joins, claim, reinforcement, capture and finalization were observed, with the result independently checked.
 
 Run `npm test` before typechecking to generate types. Browser tests need installed Chrome and free ports **8545/4173**. Set `PLAYWRIGHT_CHANNEL=msedge` to use installed Edge instead. Browser automation uses real local contracts and a test-only wallet adapter; it does not automate the MetaMask extension or submit public-network transactions. Validation details are in [docs/VALIDATION.md](docs/VALIDATION.md).
 
 `npm run build` emits `frontend/dist/`; `npm run preview` serves it at **http://127.0.0.1:4173**. Building does not publish the application.
 
 ## Screenshots
+
+The [recorded Sepolia result](https://sepolia.etherscan.io/tx/0x874687427e1221263cf0a5d55ec697fb2d0f26fbb8eda130365128fb2764eb37) confirms player 2 won with 3 tiles to player 1's 0. The [capture transaction](https://sepolia.etherscan.io/tx/0xdd86633ffd4c8a030cf1a26555e33538294bc32cedac7e07cdc51fe95f95f654) records B1 → A1. Transaction details and final board ownership are in the [Sepolia match evidence](docs/MATCH_DEPLOYMENT.md).
 
 Two-player match on **local Hardhat**, after a capture:
 

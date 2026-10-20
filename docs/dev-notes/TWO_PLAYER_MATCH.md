@@ -14,3 +14,7 @@ The frontend explicitly distinguishes match contracts from the existing open-boa
 - [x] Local screenshots, README and deployment instructions.
 - [x] Fresh-checkout validation at `f2aa1f4`: clean install, all 131 tests, typecheck, build, dev startup and HTTP 200. See ../VALIDATION.md.
 - [x] Review local desktop result and mobile lobby screenshots before requesting Sepolia deployment.
+
+## Live follow-up — 21 October 2026
+
+The user deployed the match to Sepolia at `0x98f9726a04Fc43b6145A270f61c9a97243650A33`. Both players joined and B won 3–0 after claiming B1, reinforcing it and capturing A1. Finalization receipt, events, settings and current scores were independently checked. See [match evidence](../MATCH_DEPLOYMENT.md). The real result screenshot is visible in chat and awaits a project file for README embedding. The branch remains local; no GitHub upload is authorized by supplying this evidence.

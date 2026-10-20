@@ -1,6 +1,6 @@
 # Two-player match reference
 
-`contracts/BlockConquestMatch.sol` is a standalone contract; `BlockConquest.sol` remains the unchanged earlier open board. The new contract has no Sepolia deployment yet. Constructor order: decay interval, reinforcement cooldown, power cap, match duration. Defaults: `(10, 3, 5, 100)`.
+`contracts/BlockConquestMatch.sol` is a standalone contract; `BlockConquest.sol` remains the unchanged earlier open board. The match is deployed on Sepolia at `0x98f9726a04Fc43b6145A270f61c9a97243650A33`. Constructor order: decay interval, reinforcement cooldown, power cap, match duration. Its `(10, 3, 5, 100)` values and empty lobby were read through Sepolia RPC at block 11956053. This read is not source-code verification or a live gameplay acceptance test.
 
 ## Lifecycle
 
@@ -39,4 +39,4 @@ This is a development RPC supported by local Hardhat, not a Sepolia action. The 
 5. Observe the deadline close moves. Record the winner or draw, refresh, and confirm the result persists.
 6. Save transaction links and a screenshot that includes the network, match result and scores. Repeat disconnect/reconnect in the deployed match.
 
-This checklist remains manual until a new Sepolia deployment is explicitly authorized. Automated browser tests cover these flows on local contracts with a test adapter.
+Deployment and a live two-player match are complete. Both players joined, B claimed and reinforced B1, captured A1, and won 3–0 after the deadline; the result was recorded and independently checked. See [live match evidence](MATCH_DEPLOYMENT.md). Third-account spectator controls and disconnect/reconnect remain covered by local automated tests rather than this live session. The supplied result screenshot still needs to be saved in the project for README embedding.
