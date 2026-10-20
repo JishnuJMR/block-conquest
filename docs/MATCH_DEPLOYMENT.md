@@ -31,7 +31,7 @@ Logs were filtered to the match contract address. The second join emitted both s
 
 The result receipt has status **1** and includes `MatchFinalized(B,0,3)`. Current reads independently confirm winner B and scores 0/3. `getGrid()` contains exactly three owned tiles: A1, B1 and H8, all belonging to B at effective power 1. No C1 claim occurred in this match.
 
-The supplied real MetaMask screenshot agrees: Sepolia, Player 2 wins, 0 blocks left, scores 0/3, and Result confirmed at block 11957401. A local screenshot file is still needed to embed that image in the repository.
+The [saved real MetaMask screenshot](screenshots/sepolia-match-result.png) was visually reviewed and embedded in README. It shows Sepolia, Player 2 wins, 0 blocks left, scores 0/3, and Result confirmed at block 11957401. Its displayed current block is 11957441.
 
 ## Verification scope
 

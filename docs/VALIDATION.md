@@ -4,7 +4,7 @@
 
 The real MetaMask session completed both joins, B's B1 claim and reinforcement, B1 → A1 capture, deadline expiry and result recording. Result transaction [`0x87468742…2764eb37`](https://sepolia.etherscan.io/tx/0x874687427e1221263cf0a5d55ec697fb2d0f26fbb8eda130365128fb2764eb37) has receipt status 1 at block 11957401. Its match-address log is `MatchFinalized(B,0,3)`; current contract reads confirm phase 3, finalized true, winner B and scores A: 0/B: 3. B owns A1, B1 and H8 at effective power 1.
 
-MatchStarted records start 11956131 and deadline 11956231. Finalization occurred after the deadline, as allowed. The screenshot supplied in chat agrees with the receipt and final board; its project screenshot file has not yet been saved. The third-account spectator flow, return after losing all tiles, draw and disconnect/reconnect are covered by local automated tests; they are not claimed as additional live checks in this match. See [full match evidence](MATCH_DEPLOYMENT.md).
+MatchStarted records start 11956131 and deadline 11956231. Finalization occurred after the deadline, as allowed. The [saved screenshot](screenshots/sepolia-match-result.png) was visually reviewed, agrees with the receipt and final board, and is embedded in README. The third-account spectator flow, return after losing all tiles, draw and disconnect/reconnect are covered by local automated tests; they are not claimed as additional live checks in this match. See [full match evidence](MATCH_DEPLOYMENT.md).
 
 ## Match deployment configuration read
 
@@ -35,7 +35,7 @@ A new local clone was created with `--no-hardlinks` in an empty temporary folder
 | HTTP readiness | HTTP 200; match panel, join and result controls present |
 | README/reference links | All local links in README and docs/MATCH.md resolve |
 
-All **131 tests** passed in the fresh checkout. The temporary development server was stopped after checking it. No Sepolia transaction or GitHub publication was performed. New match deployment, actual MetaMask acceptance and a real match-result screenshot remain the next manual milestone.
+All **131 tests** passed in the fresh checkout. The temporary development server was stopped after checking it. No Sepolia transaction or GitHub publication was performed during that automated validation. The subsequent manual deployment, actual MetaMask match and saved result screenshot are documented above.
 
 ## Survey Atlas fresh checkout — 18 October 2026
 

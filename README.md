@@ -110,6 +110,10 @@ Run `npm test` before typechecking to generate types. Browser tests need install
 
 ## Screenshots
 
+Completed two-player match on **Ethereum Sepolia**, showing player 2's recorded 3–0 victory:
+
+![Sepolia match result showing Player 2 wins, final scores 0–3, and Result confirmed](docs/screenshots/sepolia-match-result.png)
+
 The [recorded Sepolia result](https://sepolia.etherscan.io/tx/0x874687427e1221263cf0a5d55ec697fb2d0f26fbb8eda130365128fb2764eb37) confirms player 2 won with 3 tiles to player 1's 0. The [capture transaction](https://sepolia.etherscan.io/tx/0xdd86633ffd4c8a030cf1a26555e33538294bc32cedac7e07cdc51fe95f95f654) records B1 → A1. Transaction details and final board ownership are in the [Sepolia match evidence](docs/MATCH_DEPLOYMENT.md).
 
 Two-player match on **local Hardhat**, after a capture:
