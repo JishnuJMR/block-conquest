@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { ContractFactory, JsonRpcProvider } from 'ethers';
+import { Contract, ContractFactory, JsonRpcProvider } from 'ethers';
 import { readFile, mkdir } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -270,12 +270,14 @@ test('an address without deployed code is blocked', async ({ page }) => {
 
 test('the documented local deployment command deploys the current contract', async () => {
   const { stdout } = await promisify(execFile)(process.execPath, ['scripts/local-deploy.mjs']);
-  const address = stdout.match(/Local Block Conquest: (0x[0-9a-fA-F]{40})/)?.[1];
+  const address = stdout.match(/Local Block Conquest match: (0x[0-9a-fA-F]{40})/)?.[1];
   expect(address).toBeTruthy();
-  const deployed = game.attach(address);
+  const deployed = new Contract(address, ['function decayInterval() view returns (uint256)', 'function reinforcementCooldown() view returns (uint256)', 'function maxPower() view returns (uint256)', 'function matchDuration() view returns (uint256)', 'function phase() view returns (uint8)'], provider);
   expect(await deployed.decayInterval()).toBe(10n);
   expect(await deployed.reinforcementCooldown()).toBe(3n);
   expect(await deployed.maxPower()).toBe(5n);
+  expect(await deployed.matchDuration()).toBe(100n);
+  expect(await deployed.phase()).toBe(0n);
 });
 
 test('changing account during wallet confirmation does not show a stale success', async ({ page }) => {

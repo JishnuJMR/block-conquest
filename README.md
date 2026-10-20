@@ -1,95 +1,94 @@
-# Block Conquest
+# Block Conquest — two-player matches
 
-A university DApp where players share an 8×8 board on Ethereum Sepolia. Claim empty tiles, reinforce your territory, and capture adjacent enemy tiles. Every move is enforced by a Solidity smart contract and signed through MetaMask.
+A university DApp built with Solidity, ethers.js, MetaMask and Vite. Two players compete on one shared 8×8 board: claim territory, build power and capture weaker neighbours. **Hold more tiles when the block countdown ends to win. Equal scores mean a draw.**
 
-## Deployed contract
+## Version and network
 
-| Item | Value |
-| --- | --- |
-| Network | Ethereum Sepolia |
-| Chain ID | `11155111` |
-| Contract | [`0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`](https://sepolia.etherscan.io/address/0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3) |
-| Creation transaction | [`0xca33b7db…ca505d81`](https://sepolia.etherscan.io/tx/0xca33b7db66a7fa2db1460285581d2cc879d2e03b4d9626d2ea2fae11ca505d81) |
-| Decay interval | `10` blocks |
-| Reinforcement cooldown | `3` blocks |
-| Maximum power | `5` |
+The two-player contract is **`BlockConquestMatch`**. It is implemented for local testing and has **not yet been deployed to Sepolia**. A new deployment is required to play matches on Sepolia; the earlier contract cannot be upgraded.
 
-The creation receipt and current values returned by `decayInterval()`, `reinforcementCooldown()`, and `maxPower()` were checked through Sepolia RPC. The deployed runtime matches the compiled contract after excluding compiler metadata and masking immutable-value locations. Details are recorded in [deployment evidence](docs/DEPLOYMENT.md).
+| Version | Network | Address / status |
+| --- | --- | --- |
+| Two-player match | Local Hardhat (`31337`) | Run `npm run deploy:local`; use the printed address |
+| Two-player match | Ethereum Sepolia (`11155111`) | Not deployed |
+| Earlier open board | Ethereum Sepolia (`11155111`) | [`0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`](https://sepolia.etherscan.io/address/0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3) — select **Open board (earlier version)** |
+
+The completed open-board version is preserved at Git tag `v3-survey-atlas-open-board`. Its [Sepolia deployment and transaction evidence](docs/DEPLOYMENT.md) and [real MetaMask screenshot](docs/screenshots/sepolia-survey-atlas.png) apply to that earlier contract, which has no match deadline. The match version is developed on `feature/two-player-match`.
+
+## How a match works
+
+1. **Join:** the first two distinct wallet addresses take the seats. The first waits; no tiles or clock are active yet. The second join starts the match and gives player 1 **A1** and player 2 **H8**, both at power 1.
+2. **Expand:** claim any empty tile. It starts at power 1 and adds one point to your score.
+3. **Reinforce:** add 1 to effective power, subject to the tile's cooldown and the power cap.
+4. **Capture:** select your tile → **Choose attack target** → an adjacent enemy → **Confirm attack**. Your effective power must be strictly greater. Your source loses the defender's effective power; the captured tile starts at 1. Scores update with ownership.
+5. **Finish:** moves must be included strictly before the deadline block. At the deadline, the higher territory score wins; equal scores draw. Ownership, scores and effective power freeze.
+6. **Record the result:** anyone can click **Record final result** after the deadline. This transaction stores the winner (or a draw) on-chain. The match ends even if nobody submits this transaction immediately. The UI distinguishes the locked result from its recorded confirmation.
+
+Default settings are **10 blocks per power loss**, **3 blocks reinforcement cooldown**, **power cap 5**, and **100 blocks per match**. All four values are constructor arguments and immutable. Duration must exceed cooldown and fit `uint64`. A block countdown is not a wall-clock timer.
+
+Decay floors at power 1 and never removes ownership; empty tiles have power 0. Claims, reinforcement and attacks restart reinforcement cooldown; attacks update both affected tiles. Attacks have no separate cooldown. A player with no tiles can claim another empty tile during the match. If no tiles are empty, they cannot return, but the match still ends at its deadline. Each deployment contains one match; a rematch requires a new deployment.
 
 ## Features and technology
 
-- One shared board per contract in a Survey Atlas interface: faction patterns, colours, player labels, and effective power on every owned tile.
-- Claim, reinforce, and capture transactions through MetaMask, with confirmation, pending, success, and error feedback.
-- On-chain ownership scores and a frontend leaderboard with territory-share bars counted from `getGrid()` owners.
-- Attack outcome previews, per-tile block countdowns, dismissible instructions, and confirmed-capture feedback that respects reduced motion.
-- Visible wallet disconnect, an integrated Move panel, and mobile actions that stay within reach.
-- Block-based power decay, reinforcement cooldown, and an immutable power cap.
-- Refresh on new blocks, account/network change handling, and responsive desktop/mobile layouts.
-- No tokens, NFTs, betting, randomness, administrative takeover, or upgrades.
+- Survey Atlas interface with owner patterns, player labels, effective power, a match scoreboard and territory-share leaderboard counted from `getGrid()`.
+- Match lobby, join/start transaction, block countdown, spectator view, winner/draw screen and result-recording transaction.
+- Attack estimates, cooldown/decay countdowns, transaction feedback, and refreshes on new blocks.
+- Wallet connection and Disconnect, account/network changes, keyboard navigation, mobile action row and reduced-motion support.
+- Solidity **0.8.28**, Hardhat **3.19.0**, ethers.js **6.17.0**, Vite **8.3.4**, plain HTML/CSS/JavaScript and Playwright.
+- No tokens, NFTs, betting, prizes, randomness, admin takeover or upgrades. Moves require gas, not a tile purchase price.
 
-Built with Solidity **0.8.28**, Hardhat **3.19.0**, ethers.js **6.17.0**, Vite **8.3.4**, HTML/CSS/JavaScript, MetaMask, and Sepolia. Mocha tests cover the contract; Node tests cover frontend logic; Playwright covers browser interactions with real local contracts.
+## Install and run
 
-## Run locally
-
-Requirements: Git, npm, a supported even-numbered Node.js release (**Node.js 24 LTS recommended**; Hardhat requires at least 22.13.0), and the [MetaMask browser extension](https://metamask.io/). The first compilation downloads the Solidity compiler and needs internet access.
+Use Git, npm and Node.js **24 LTS** (Hardhat requires at least 22.13.0). Initial compilation needs internet access to download the compiler. Install the [MetaMask extension](https://metamask.io/) for manual wallet interaction.
 
 ```sh
 git clone https://github.com/JishnuJMR/block-conquest.git
 cd block-conquest
+git switch feature/two-player-match
 npm ci
 npm test
 npm run dev
 ```
 
-1. Open **http://127.0.0.1:5173** in the browser containing MetaMask.
-2. In MetaMask, enable test networks and choose **Ethereum Sepolia**. Submitting moves needs Sepolia test ETH, available from a faucet such as [Google Cloud's Sepolia faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia).
-3. Open **Board settings**, select **Ethereum Sepolia**, paste `0x4D8ebB57f5140fD302F7b1f4Ff57EF23ff1c3Cb3`, and click **Load board**.
-4. Click **Connect wallet** and approve access. The board loads from the deployed contract.
+The match branch must be published before a remote clone can check it out. In the current local checkout, start at `npm ci`. Open **http://127.0.0.1:5173**. If that port is occupied, use `npm run dev -- --port 5174` and open port 5174 instead.
 
-Board settings are saved in the browser. To set public defaults instead, copy `frontend/.env.example` to `frontend/.env.local` with your editor/file manager and restart Vite. Browser-saved settings override these defaults. Never put wallet keys, seed phrases, passwords, or private RPC credentials in frontend variables: `VITE_` values are public.
+**Windows PowerShell:** if script policy blocks `npm.ps1`, use `npm.cmd` in place of `npm`. No execution-policy change is needed.
 
-If port 5173 is in use, stop the other server or run `npm run dev -- --port 5174` and open **http://127.0.0.1:5174**.
+For the existing Sepolia open board, select **Ethereum Sepolia**, **Open board (earlier version)** and the address in the table above under **Board settings**. Click **Load board**, then **Connect wallet**. It retains the original rules without a winner.
 
-**Windows PowerShell note:** if script policy blocks `npm.ps1`, use `npm.cmd` instead of `npm`, for example `npm.cmd ci`. No execution-policy change is required.
+For a local match, use two additional terminals:
 
-## How to play
+```sh
+# Terminal 1: leave the local chain running
+npm run node:local
+```
 
-1. **Claim:** select an empty tile, click **Claim tile**, and confirm in MetaMask. You own it at power 1.
-2. **Reinforce:** select your tile, wait for cooldown to finish, click **Reinforce**, and confirm. One point is added to effective power, up to the cap.
-3. **Attack:** select your source tile → **Choose attack target** → select a highlighted enemy → **Confirm attack** → approve in MetaMask.
+```sh
+# Terminal 2: deploy a fresh match
+npm run deploy:local
+```
 
-Attacks are allowed only directly above, below, left, or right. Your effective power must be **strictly greater** than the defender's. Capture subtracts the defender's effective power from your source; the captured tile becomes yours at power 1. Scores count currently owned tiles.
+Choose **Local Hardhat** and **Two-player match** in Board settings and enter the printed address. Manual local play uses disposable Hardhat test accounts; see the [local wallet instructions](docs/FRONTEND.md#optional-local-chain-for-development). Do not import your Sepolia wallet secrets into project files. Local Hardhat normally mines on transactions; see [advancing the local match clock](docs/MATCH.md#local-block-clock) for testing the deadline.
 
-Power decays by 1 every 10 blocks since the tile's last update, with a floor of 1. Ownership never decays. Claims, reinforcements, and attacks restart reinforcement cooldown; attacks update both source and captured tiles. Attacks have no separate cooldown. `getTile()` returns stored state, while `effectivePower()` and `getGrid()` include decay. See [rule examples](docs/GAME_RULES.md).
+Board settings persist in the browser. Optional public defaults are in `frontend/.env.example`: copy it to `frontend/.env.local`, enter the address, chain ID and board mode, then restart Vite. Saved browser settings take priority. **Never put private keys, seed phrases or private RPC credentials in frontend variables; `VITE_` values are public.**
 
-The UI uses A–H and 1–8; A1 is `(0,0)` and H1 is `(7,0)`. Arrow keys move focus between tiles; Enter/Space selects a tile.
+## Deploy a new match to Sepolia with Remix
 
-Player markers (`P1`, `P2`, …) and six distinct patterns identify factions beyond colour. Your connected faction reads **You** on the board, Move panel, and leaderboard. Underlying labels are saved per board in this browser and stay stable as ranks change; another browser may assign different labels. Addresses identify the actual players. **How to play** reopens the instructions. Select a tile to see reinforcement readiness and the next power-loss countdown, measured in blocks. Power 1 is the minimum. The displayed cap, cooldown and decay interval come from the contract.
+These are manual deployment instructions. No deployment script here sends transactions to Sepolia.
 
-Use **Disconnect** beside the wallet address to clear the app session and request removal of MetaMask's account permission. If the wallet cannot remove that permission, the app explains how to finish through MetaMask's Dapp connections. Disconnecting does not remove your territory or cancel an already submitted transaction. The app stays disconnected until **Connect wallet** is clicked again. Live territory requires a connected wallet; the disconnected board is explicitly marked unloaded.
+1. Open [Remix](https://remix.ethereum.org/) in the browser containing MetaMask. Create `contracts/BlockConquestMatch.sol` and paste the complete [match contract](contracts/BlockConquestMatch.sol).
+2. Select Solidity compiler **0.8.28**, enable optimizer **200 runs**, and choose EVM target **cancun**. Compile.
+3. In MetaMask, enable test networks and select **Ethereum Sepolia**. Use a test wallet funded with Sepolia test ETH.
+4. In **Deploy & Run Transactions**, select **Browser Extension → MetaMask** (also called **Injected Provider – MetaMask**). Confirm network **Sepolia / 11155111**.
+5. Select **BlockConquestMatch** and leave **Value = 0**. Constructor arguments, in order: `decayInterval_ = 10`, `reinforcementCooldown_ = 3`, `maxPower_ = 5`, `matchDuration_ = 100`.
+6. Click **Deploy**, review the network and gas fee, and confirm in MetaMask. Save the new address and creation transaction hash. Source verification on Etherscan is optional.
+7. Read `decayInterval()`, `reinforcementCooldown()`, `maxPower()` and `matchDuration()` to confirm **10, 3, 5, 100**. `phase()` should return **0** (Waiting).
+8. In the frontend select **Ethereum Sepolia**, **Two-player match**, and the new address. Connect player 1 and click **Join match**.
+9. Have player 2 load the same address and connect their distinct wallet. **Join & start match** begins the countdown immediately. Have both players ready before this step.
+10. Play, then click **Record final result** when the countdown ends. Save the creation/result transaction links and take a real Sepolia screenshot for the submission.
 
-Arrow keys move between tiles, Enter/Space selects, and Escape cancels attack selection or clears the selected tile. On small screens, the action row stays at the bottom of the viewport and includes the selected coordinate, attack estimate, and transaction feedback.
+Signing stays in MetaMask. No wallet-key export or Infura API key is required. `npm run deploy:rehearsal` uses an ephemeral local Hardhat chain only.
 
-Selecting an attack target previews **your power − defence = power kept by the source**, with the captured tile starting at 1. This uses the latest loaded block; the contract determines the outcome when the transaction is included.
-
-## Deploy your own contract with Remix
-
-The existing Sepolia board can be used without redeployment. To create a separate board:
-
-1. Open [Remix](https://remix.ethereum.org/) in the browser containing MetaMask. Create `contracts/BlockConquest.sol` and paste the complete current [contract source](contracts/BlockConquest.sol) from this repository.
-2. In **Solidity Compiler**, select **0.8.28**, enable the optimizer with **200 runs**, and set the EVM target to **cancun**. Compile.
-3. In MetaMask, enable test networks, select **Sepolia**, and choose an account funded with Sepolia test ETH.
-4. In **Deploy & Run Transactions**, choose **Browser Extension → MetaMask** (also called **Injected Provider – MetaMask**). Approve the connection and check **Sepolia / 11155111**.
-5. Select **BlockConquest**, keep **Value = 0**, and enter constructor arguments in order: `decayInterval = 10`, `reinforcementCooldown = 3`, `maxPower = 5`. These values are immutable; intervals must be positive and cap at least 2.
-6. Click **Deploy**, review the network and fee, and confirm in MetaMask. Explorer source verification is optional and is not required to deploy or use this app.
-7. Save the new contract address and creation transaction hash. Read `decayInterval()`, `reinforcementCooldown()`, and `maxPower()` in Remix to confirm `10`, `3`, and `5`.
-8. Enter the new address in the frontend's **Board settings**. This is a separate, initially empty board.
-
-Signing stays in MetaMask. No private-key export, Infura API key, or paid ETH is required. See [Remix deployment documentation](https://remix-ide.readthedocs.io/en/latest/run.html).
-
-For local development, `npm run node:local` starts Hardhat; in another terminal, `npm run deploy:local` prints a local address. Select **Local Hardhat** in Board settings. `npm run deploy:rehearsal` targets an ephemeral local chain only. More instructions are in the [frontend guide](docs/FRONTEND.md).
-
-## Tests and production build
+## Tests and build
 
 ```sh
 npm test
@@ -99,41 +98,28 @@ npm run test:ui
 npm run build
 ```
 
-The suite contains **91 tests**: 62 contract tests, 8 frontend logic tests, and 21 browser integration tests. Run `npm test` before typechecking to generate contract types. Browser tests build the app and start a local node and preview server; ports **8545** and **4173** must be free. They use installed Chrome and a test-only EIP-1193 adapter forwarding to unlocked local Hardhat accounts. They do not automate MetaMask or send public-network transactions.
+The suite contains **90 contract tests**, **12 frontend logic tests** and **29 browser integration tests**. Contract coverage includes joining, permissions, exact deadline boundaries, either winner/draw, immutable final state, all original tile rules, long inactivity and attacks using both effective powers. Browser tests exercise full matches, spectators, rejection, late transactions, disconnect/reconnect and mobile reachability, alongside the open-board regressions.
 
-Install Google Chrome for browser tests, or set `PLAYWRIGHT_CHANNEL` to `msedge` if Microsoft Edge is installed. Contract and frontend logic tests do not need a browser.
+Run `npm test` before typechecking to generate types. Browser tests need installed Chrome and free ports **8545/4173**. Set `PLAYWRIGHT_CHANNEL=msedge` to use installed Edge instead. Browser automation uses real local contracts and a test-only wallet adapter; it does not automate the MetaMask extension or submit public-network transactions. Validation details are in [docs/VALIDATION.md](docs/VALIDATION.md).
 
-Survey Atlas passed a fresh-clone check on Windows: clean installation, all 91 tests, typechecking, production build, and development-server startup. Loading the Sepolia board, disconnecting, and reconnecting were also confirmed through real MetaMask. See [validation details](docs/VALIDATION.md) for the checked snapshot. The current Sepolia screenshot appears below; additional local test images are labelled separately.
+`npm run build` emits `frontend/dist/`; `npm run preview` serves it at **http://127.0.0.1:4173**. Building does not publish the application.
 
-Coverage includes invalid coordinates/ownership, occupied claims, edges and adjacency, attack power/cost, score updates, caps, exact cooldown/decay boundaries, long inactivity, both effective powers in combat, wallet rejection, stale confirmations, account/network changes, and responsive layout.
+## Screenshots
 
-`npm run build` emits static files to `frontend/dist/`; `npm run preview` serves them at **http://127.0.0.1:4173**. Public website hosting is not required to run the DApp locally.
+Two-player match on **local Hardhat**, after a capture:
 
-## Screenshots and live transactions
+![Local two-player match with both scores, countdown and confirmed capture](docs/screenshots/match-active-local.png)
 
-Survey Atlas in a real MetaMask session on Sepolia. The screenshot shows five claimed tiles, two faction patterns, scores of 4 and 1, the selected tile's cooldown, a visible Disconnect control, and an **Attack confirmed** message.
+Final result recorded on **local Hardhat**:
 
-![Survey Atlas on Sepolia with two factions, scores of 4 and 1, and Attack confirmed in the Move panel](docs/screenshots/sepolia-survey-atlas.png)
+![Local match with a recorded winner and locked final scores](docs/screenshots/match-result-local.png)
 
-The transactions below document earlier moves. The [earlier capture screenshot](docs/screenshots/sepolia-capture.png) shows account A owning H1 and G1 and account B retaining G2, with scores of 2 and 1. That capture receipt and contract state at its block were independently checked; it is a different capture from the one shown in the current screenshot.
-
-- [Successful H1 → G1 capture](https://sepolia.etherscan.io/tx/0xf868656f729c9704f55e5cdaa958dc707028629772a7a3723a0917469f0ecb47)
-- [Successful H1 claim](https://sepolia.etherscan.io/tx/0x9fcbd74381c90cf660a619e1a2973635458608b1b6ff62d518cd34f552802ddd)
-- [Successful H1 reinforcement to power 2](https://sepolia.etherscan.io/tx/0xaf99d3aa6b37990fee418dbef511ff39a5e450a6f55658a73ba413a87d3de50c)
-- [Earlier Sepolia screenshot after reinforcement and decay back to power 1](docs/screenshots/sepolia-board.png)
-
-Survey Atlas with only three tiles claimed on local Hardhat:
-
-![Survey Atlas with a sparse three-tile board and the selected tile's Move panel](docs/screenshots/atlas-sparse-desktop.png)
-
-Three players and an attack estimate:
-
-![Enhanced Block Conquest UI with owner markers and an attack outcome preview on local Hardhat](docs/screenshots/local-board-desktop.png)
-
-[Mobile action row at 360×640](docs/screenshots/atlas-mobile-viewport.png) · [Full mobile view](docs/screenshots/atlas-sparse-mobile.png) · [Six factions in greyscale](docs/screenshots/atlas-six-factions-greyscale.png) · [Greyscale mobile view](docs/screenshots/atlas-six-factions-mobile-greyscale.png). These are local test images, distinct from the Sepolia screenshot above.
+[Mobile match lobby](docs/screenshots/match-lobby-mobile-local.png). These match screenshots are local tests, not Sepolia evidence.
 
 ## Known limitations
 
-- The contract enforces programmed rules; it is **not cheat-proof**. Transactions are public, and competing claims or attacks can be reordered or front-run.
-- Power, ownership, and gas estimates can change between preview and inclusion. Another move or a decay boundary can make a transaction fail.
-- One person can control multiple accounts; there is no identity or anti-Sybil mechanism. There are no administrative recovery or upgrade mechanisms.
+- The contract enforces programmed rules; it is **not cheat-proof**. Public transactions can be reordered or front-run. A move approved before the deadline can still fail if included too late.
+- The first two callers get the seats; they cannot leave or be replaced. One person can control both wallets. There is no player identity system or private invitation.
+- Empty-tile claiming is unrestricted. More frequent transactions can confer an advantage; competitive balance needs playtesting.
+- A match waits indefinitely for its second player. A completed match cannot restart. A fresh deployment is needed for another match.
+- Power and ownership may change between an attack estimate and inclusion. There are no prizes or automatic payouts.

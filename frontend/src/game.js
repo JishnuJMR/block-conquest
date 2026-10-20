@@ -1,8 +1,10 @@
 import { Interface, getAddress, isAddress, ZeroAddress } from 'ethers';
 import artifact from './generated/BlockConquest.json' with { type: 'json' };
+import matchArtifact from './generated/BlockConquestMatch.json' with { type: 'json' };
 
 export const ABI = artifact.abi;
-const iface = new Interface(ABI);
+export const MATCH_ABI = matchArtifact.abi;
+const iface = new Interface(MATCH_ABI);
 export const LEGACY_ADDRESS = '0x5a6db2fa7424f519a10805c48ef33f4ea141a9c9';
 export const NETWORKS = {
   11155111: { name: 'Sepolia', hex: '0xaa36a7', explorer: 'https://sepolia.etherscan.io' },
@@ -66,6 +68,13 @@ export function canAttack(tiles, source, target, account) {
 }
 
 const errors = {
+  AlreadyJoined: 'This account already has a seat. Switch to a different account for the other player.',
+  MatchFull: 'Both seats are taken. You can watch this match.',
+  NotPlayer: 'Only the two registered players can make moves in this match.',
+  MatchNotStarted: 'Both players must join before the match starts.',
+  MatchEnded: 'The deadline has passed. Moves are closed; record the final result.',
+  MatchStillActive: 'The match is still active. Wait until the deadline to record the result.',
+  AlreadyFinalized: 'The result has already been recorded. Refresh to view it.',
   InvalidCoordinates: 'That tile is outside the board.',
   TileOccupied: 'Someone already owns that tile. Refresh and choose an empty tile.',
   NotTileOwner: 'You no longer own this tile. Refresh the board.',

@@ -1,5 +1,7 @@
 # Run and use the Block Conquest frontend
 
+**Two-player version:** in Board settings choose **Two-player match** and a newly deployed `BlockConquestMatch` address. `npm run deploy:local` now deploys this version with `(10,3,5,100)`. The match panel handles joining, the countdown and final results; see [match reference](MATCH.md). The existing Sepolia address below is the earlier version and requires **Open board (earlier version)**. P1/P2 labels in matches follow the registered seats; browser-local labels described below apply to open boards.
+
 The frontend is plain HTML/CSS/JavaScript with Vite and ethers.js. It signs transactions through MetaMask. Board state comes from the contract; there is no server database or on-chain player list.
 
 ## Open the local app

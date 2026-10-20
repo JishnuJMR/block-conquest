@@ -1,5 +1,7 @@
 # Block Conquest — project specification and progress
 
+The original specification below is preserved as history. A separate two-player match version was authorized on 18 October 2026; implementation and validation continued on 20 October. See [the match plan](TWO_PLAYER_MATCH.md) and [current rules](../MATCH.md). The original open-board contract remains unchanged.
+
 > Historical development notes. Intermediate statuses, paths, and an obsolete deployment address below are retained as history. The root README and docs/DEPLOYMENT.md describe the current submission. The first GitHub upload completed at commit 9b10699.
 
 Deadline: **2 November 2026**. Environment: Windows 11, VS Code, PowerShell.

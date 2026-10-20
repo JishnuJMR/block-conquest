@@ -1,5 +1,15 @@
 # Submission and UI validation
 
+## Two-player match — 20 October 2026
+
+The working checkout passed **131 tests**: 90 contract tests (62 existing open-board checks plus 28 match/rehearsal checks), 12 frontend logic tests and 29 browser tests. Typechecking and the production build passed. The original `BlockConquest.sol`, dependencies and Hardhat compiler configuration are unchanged.
+
+Match checks cover distinct seats, simultaneous starting tiles, spectator restrictions, the last playable block, rejection at the exact deadline, either winner and a draw, public finalization, duplicate finalization, frozen scores/power and long-inactivity combat. Browser checks exercise joining from two accounts, capture, countdown, winner/draw recording, rejection, deadline expiry during wallet confirmation, reconnect, old-contract mode mismatch, and 360×640 reachability. P1/P2 labels agree with the seats.
+
+The saved local match lobby, active-match and recorded-result screenshots were visually reviewed. These tests use local Hardhat contracts and a test-only wallet adapter. The match version has not been deployed or manually tested through MetaMask on Sepolia. Prior public-network evidence below applies only to the open-board version.
+
+Fresh-checkout verification for this match snapshot is recorded after completion. The previous version is preserved at tag `v3-survey-atlas-open-board` (`d9af00b`).
+
 ## Survey Atlas fresh checkout — 18 October 2026
 
 Tested a fresh local Git clone of **f38560e** on `ui/conquest-clarity` in an empty temporary directory, using `--no-hardlinks`. Dependencies, build output, caches, generated types and `.env.local` were not copied. Environment: Windows 11, Node.js 24.13.0, npm 11.6.2 and installed Chrome; commands used the documented `npm.cmd` substitution.

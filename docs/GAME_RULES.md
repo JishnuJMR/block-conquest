@@ -1,5 +1,7 @@
 # Block timing and effective power
 
+These tile mechanics apply to both contracts. The two-player version adds a fourth constructor argument (match duration), two registered seats and a deadline. See [match rules](MATCH.md). Effective power in a match freezes at the deadline; the open board continues decaying indefinitely.
+
 The constructor's default values are `(10, 3, 5)`: decay interval in blocks, reinforcement cooldown in blocks, and power cap. They are fixed for the lifetime of a deployed contract.
 
 ## Lazy decay

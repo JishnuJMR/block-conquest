@@ -1,8 +1,22 @@
 import { expect } from "chai";
 import { network } from "hardhat";
 import BlockConquest from "../ignition/modules/BlockConquest.js";
+import BlockConquestMatch from "../ignition/modules/BlockConquestMatch.js";
 
 describe("Current deployment rehearsal (local only)", function () {
+  it("deploys a match through Ignition, starts with two players and finalizes a draw", async function () {
+    const { ignition, ethers, networkHelpers } = await network.create();
+    const { game } = await ignition.deploy(BlockConquestMatch);
+    const [, second] = await ethers.getSigners();
+    expect(await game.matchDuration()).to.equal(100);
+    await game.join();
+    await game.connect(second).join();
+    expect(await game.phase()).to.equal(1);
+    await networkHelpers.mine(100);
+    await game.finalize();
+    expect(await game.finalized()).to.equal(true);
+    expect(await game.winner()).to.equal(ethers.ZeroAddress);
+  });
   it("deploys the module, claims, enforces cooldown, and decays power", async function () {
     const { ignition, ethers, networkHelpers } = await network.create();
     const { game } = await ignition.deploy(BlockConquest);

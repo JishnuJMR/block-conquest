@@ -18,13 +18,19 @@
       <details id="settings"><summary>Board settings</summary><form id="settings-form">
         <div class="section-heading"><h2>Choose your board</h2><button id="close-settings" class="icon-button" type="button" aria-label="Close board settings">×</button></div>
         <label for="chain">Network</label><select id="chain"><option value="11155111">Ethereum Sepolia</option><option value="31337">Local Hardhat</option></select>
+        <label for="board-mode">Game mode</label><select id="board-mode"><option value="match">Two-player match</option><option value="open">Open board (earlier version)</option></select>
         <label for="address">Contract address</label><input id="address" placeholder="0x…" autocomplete="off" spellcheck="false" required />
         <p class="form-help">Load a Block Conquest board on the selected network.</p><button class="button primary" type="submit">Load board</button><p id="settings-error" role="alert"></p>
       </form></details>
     </div>
-    <p class="objective"><strong>Hold more territory.</strong> Every owned tile adds one to your score.</p>
+    <p id="objective" class="objective">Hold more territory when the countdown ends. Equal scores mean a draw.</p>
     <div id="setup-notice" class="notice"><span id="setup-message">Connect MetaMask to load the live board.</span> <button id="open-settings" class="text-button">Board settings</button></div>
     <div id="network-notice" class="notice warning" hidden><span id="network-message"></span><button id="switch-network" class="button small">Switch network</button></div>
+    <section id="match-panel" class="match-panel" aria-labelledby="match-title">
+      <div class="match-intro"><p class="eyebrow">TWO-PLAYER MATCH</p><h2 id="match-title">Two players. One winner.</h2><p id="match-detail">Load a match contract to join or watch.</p></div>
+      <div class="match-timing"><strong id="match-clock">—</strong><span id="match-deadline">The second join starts the clock.</span><button id="join-match" class="button primary" hidden>Join match</button><button id="finalize-match" class="button primary" hidden>Record final result</button></div>
+      <div id="match-scores" class="match-scores" hidden><div><span>PLAYER 1 / A1</span><strong id="seat-1">Open seat</strong><b id="seat-score-1">0 tiles</b></div><div><span>PLAYER 2 / H8</span><strong id="seat-2">Open seat</strong><b id="seat-score-2">0 tiles</b></div></div>
+    </section>
     <div class="workspace">
       <section class="board-card" aria-labelledby="board-title">
         <div class="section-heading board-heading"><div><p class="eyebrow">01 / THE SHARED BOARD</p><h1 id="board-title">Territory map<span class="title-dot">.</span></h1></div><button id="refresh" class="icon-button" aria-label="Refresh board" title="Refresh board">↻</button></div>

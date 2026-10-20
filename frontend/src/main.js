@@ -1,16 +1,19 @@
-import { BrowserProvider, Contract, getAddress } from 'ethers';
+import { BrowserProvider, Contract, getAddress, ZeroAddress } from 'ethers';
+import { matchView } from './match.js';
 import { ABI, NETWORKS, sameAddress, isEmpty, shortAddress, coordinate, adjacent, validateAddress, leaderboard, ownerIdentities, decayRemaining, cooldownRemaining, canAttack, friendlyError } from './game.js';
 import './style.css';
+import { MATCH_ABI } from './game.js';
 
 const $ = id => document.getElementById(id);
 const defaults = {
+  mode: import.meta.env.VITE_BOARD_MODE === 'open' ? 'open' : 'match',
   chain: NETWORKS[import.meta.env.VITE_CHAIN_ID] ? Number(import.meta.env.VITE_CHAIN_ID) : 11155111,
   address: import.meta.env.VITE_CONTRACT_ADDRESS || '',
 };
 function savedConfig() {
   try {
     const saved = JSON.parse(localStorage.getItem('block-conquest:board'));
-    if (saved && NETWORKS[saved.chain]) return { chain: Number(saved.chain), address: saved.address || '' };
+    if (saved && NETWORKS[saved.chain]) return { chain: Number(saved.chain), address: saved.address || '', mode: saved.mode === 'match' ? 'match' : 'open' };
   } catch { /* Storage may be blocked; configuration still works for this session. */ }
   return defaults;
 }
@@ -19,15 +22,24 @@ const state = {
   tiles: [], block: 0n, cap: 5n, cooldown: 3n, decay: 10n, score: 0n,
   ready: false, selected: null, attackSource: null, target: null, busy: false, connecting: false,
   epoch: 0, refreshId: 0, operation: 0, readError: '', identities: new Map(), captured: null,
-  pendingTiles: [], disconnecting: false, manuallyDisconnected: false,
+  pendingTiles: [], disconnecting: false, manuallyDisconnected: false, match: null,
 };
 try { state.manuallyDisconnected = localStorage.getItem('block-conquest:disconnected') === 'true'; } catch { /* Session-only preference. */ }
 $('chain').value = String(state.chain);
 $('address').value = state.address;
+$('board-mode').value = state.mode;
+const boardAbi = () => state.mode === 'match' ? MATCH_ABI : ABI;
+const matchStatus = () => state.ready && state.match ? matchView(state.match, state.tiles, state.account, state.block) : null;
+const canPlay = () => state.ready && (state.mode === 'open' || (state.match?.phase === 1n && [state.match.playerOne, state.match.playerTwo].some(owner => sameAddress(owner, state.account))));
 
 let captureTimer;
 const identityCache = new Map();
 function updateIdentities() {
+  if (state.mode === 'match' && state.match) {
+    const seats = [state.match.playerOne, state.match.playerTwo].filter(owner => !sameAddress(owner, ZeroAddress));
+    state.identities = ownerIdentities(state.tiles, seats);
+    return;
+  }
   const key = `block-conquest:owners:${state.chain}:${state.address.toLowerCase()}`;
   let known = identityCache.get(key);
   if (!known) {
@@ -144,12 +156,13 @@ function render() {
     ? `Attacking from ${coordinate(state.attackSource)}. Choose a highlighted enemy, then confirm.`
     : state.score === 0n ? 'Choose your first territory: select any empty tile, then claim it.'
     : 'Select your territory to build power, or claim an empty tile to expand.';
+  renderMatch();
 
   cells.forEach((button, index) => {
     const tile = state.ready ? state.tiles[index] : null;
     const empty = isEmpty(tile);
     const mine = sameAddress(tile?.owner, state.account);
-    const eligible = canAttack(state.tiles, state.attackSource, index, state.account);
+    const eligible = canPlay() && canAttack(state.tiles, state.attackSource, index, state.account);
     button.className = `tile${empty ? ' unclaimed' : ' occupied'}${mine ? ' mine' : ''}${index === state.selected ? ' is-selected' : ''}${index === state.attackSource ? ' source' : ''}${eligible ? ' targetable' : ''}${index === state.captured ? ' just-captured' : ''}${state.pendingTiles.includes(index) ? ' move-pending' : ''}`;
     button.disabled = !state.ready || state.busy;
     button.style.setProperty('--owner-hue', String(empty ? 0 : identity(tile.owner)?.hue ?? 0));
@@ -174,7 +187,7 @@ function render() {
     const dx = tx - sx, dy = ty - sy;
     for (const [key, value] of Object.entries({ x1: sx * 100 + 50 + dx * 30, y1: sy * 100 + 50 + dy * 30, x2: tx * 100 + 50 - dx * 30, y2: ty * 100 + 50 - dy * 30 })) $('attack-path').setAttribute(key, value);
   }
-  document.body.classList.toggle('has-selection', state.ready && state.selected != null);
+  document.body.classList.toggle('has-selection', canPlay() && state.selected != null);
   $('dock-context').textContent = !state.ready || state.selected == null ? '' : state.busy ? 'Move in progress · check MetaMask' : preview ? `Estimate: ${coordinate(state.attackSource)} → ${coordinate(state.target)} · ${state.tiles[state.attackSource].power} − ${state.tiles[state.target].power} = ${state.tiles[state.attackSource].power - state.tiles[state.target].power} left · new tile 1` : `${coordinate(state.selected)} · ${isEmpty(state.tiles[state.selected]) ? 'Unclaimed · starts at power 1' : `${ownerLabel(state.tiles[state.selected].owner)} · power ${state.tiles[state.selected].power}`}`;
   $('leaderboard').replaceChildren();
   $('leaderboard-empty').hidden = leaders.length > 0;
@@ -196,6 +209,31 @@ function render() {
   });
 }
 
+function renderMatch() {
+  const mode = state.mode === 'match', view = matchStatus();
+  $('match-panel').hidden = !mode;
+  document.querySelector('.label-note').textContent = mode ? 'P1 and P2 match the registered seats. Your faction is marked “You”.' : 'Player labels stay with their addresses in this browser. Your faction is marked “You”.';
+  $('objective').textContent = mode ? 'Hold more territory when the countdown ends. Equal scores mean a draw.' : 'Hold more territory. Every owned tile adds one to your score. Open board: no match deadline.';
+  $('join-match').hidden = !view?.canJoin;
+  $('finalize-match').hidden = !view?.canFinalize;
+  $('join-match').disabled = $('finalize-match').disabled = state.busy;
+  $('match-scores').hidden = !view;
+  $('match-clock').textContent = !view ? '—' : view.waiting ? `${state.match.matchDuration} blocks / match` : view.active ? `${view.blocksLeft} blocks left` : '0 blocks left';
+  $('match-deadline').textContent = view && !view.waiting ? `Deadline: block ${state.match.endBlock.toLocaleString()}` : 'The second join starts the clock.';
+  $('match-title').textContent = !view ? 'Two players. One winner.' : view.waiting ? view.emptySeats === 2 ? 'Take the first seat.' : 'Waiting for player two.' : view.active ? 'The match is on.' : sameAddress(view.result, ZeroAddress) ? 'Match drawn.' : sameAddress(view.result, state.account) ? 'You win.' : `Player ${sameAddress(view.result, state.match.playerOne) ? '1' : '2'} wins.`;
+  $('match-detail').textContent = !view ? 'Load a match contract and connect your wallet to join or watch.' : view.waiting ? view.joined ? 'Your seat is reserved. Share this contract address with your opponent.' : 'Join with a distinct wallet. Players start at A1 and H8 with 1 power each.' : view.active ? view.joined ? 'Claim, reinforce and capture. Every owned tile adds one to your score.' : 'You are watching. Only the two registered players can make moves.' : state.match.phase === 3n ? 'Final result recorded on-chain. This match is complete.' : 'Time is up. Scores are locked. Anyone can record the result with one transaction.';
+  if (view) view.players.forEach((owner, i) => {
+    const empty = sameAddress(owner, ZeroAddress);
+    $(`seat-${i + 1}`).textContent = empty ? 'Open seat' : `${sameAddress(owner, state.account) ? 'You' : `Player ${i + 1}`} · ${shortAddress(owner)}`;
+    $(`seat-${i + 1}`).title = empty ? '' : owner;
+    $(`seat-score-${i + 1}`).textContent = `${view.scores[i]} ${view.scores[i] === 1 ? 'tile' : 'tiles'}`;
+  });
+  $('join-match').textContent = view?.emptySeats === 1 ? 'Join & start match' : 'Join match';
+  $('match-panel').dataset.phase = view ? String(state.match.phase) : 'unloaded';
+  if (view && !view.canPlay) $('board-hint').textContent = view.waiting ? 'Both players must join before any tiles can be claimed.' : view.ended ? 'Match complete. Select a tile to inspect the final board.' : 'Spectator view. Select a tile to inspect it.';
+  if (view?.ended) $('rule-decay').textContent = 'Ownership, scores and effective power are frozen at the deadline.';
+}
+
 function renderSelection() {
   const tile = state.ready && state.selected != null ? state.tiles[state.selected] : null;
   for (const id of ['claim', 'reinforce', 'attack', 'capture', 'cancel-attack']) { $(id).hidden = true; $(id).disabled = true; }
@@ -203,6 +241,13 @@ function renderSelection() {
   $('attack-preview').hidden = true;
   $('selection-coordinate').textContent = tile ? coordinate(state.selected) : '—';
   if (!tile) {
+    const view = matchStatus();
+    if (view && !view.canPlay) {
+      $('selection-title').textContent = view.ended ? 'Match complete.' : view.waiting ? 'Join the conquest.' : 'Watch the match.';
+      $('selection-description').textContent = view.ended ? 'Select a tile to inspect the final board. No further moves can be made.' : view.waiting ? 'Use the match panel above to join. Both players receive a starting tile when the match begins.' : 'Select any tile to inspect its owner and power.';
+      $('action-help').textContent = view.canFinalize ? 'Record the result using the button in the match panel.' : view.waiting ? 'The second player’s join starts the countdown.' : 'Each owned tile adds one to the score.';
+      return;
+    }
     $('selection-title').textContent = state.ready ? 'Pick your territory.' : 'Your map awaits.';
     $('selection-description').textContent = state.ready ? 'Select any tile to see its owner, power, and available moves.' : 'Connect MetaMask on the board’s network to load live territory and make your first move.';
     $('claim').hidden = false;
@@ -219,6 +264,14 @@ function renderSelection() {
   $('tile-cooldown').textContent = empty ? 'Starts after claim' : remaining > 0n ? `Ready in ${remaining} ${remaining === 1n ? 'block' : 'blocks'}` : 'Ready';
   const decayLeft = decayRemaining(tile, state.block, state.decay);
   $('tile-decay').textContent = empty ? 'No power yet' : decayLeft == null ? 'Minimum power reached' : `Next power loss in ${decayLeft} ${decayLeft === 1n ? 'block' : 'blocks'}`;
+  if (!canPlay()) {
+    const view = matchStatus();
+    $('selection-title').textContent = view?.ended ? 'Final territory.' : view?.waiting ? 'Waiting for players.' : 'Spectator view.';
+    $('selection-description').textContent = view?.ended ? 'The deadline has passed. Ownership and power are frozen.' : view?.waiting ? 'Join using the match panel above. Tiles unlock when the second player joins.' : 'Only the two registered players can make moves.';
+    $('action-help').textContent = view?.ended ? 'Each owned tile counts toward the final score.' : 'You can inspect every tile.';
+    if (view?.ended) { $('tile-cooldown').textContent = 'Match ended'; $('tile-decay').textContent = 'Frozen at deadline'; }
+    return;
+  }
   if (state.attackSource != null) {
     $('selection-title').textContent = state.target == null ? 'Choose an enemy.' : `${coordinate(state.attackSource)} → ${coordinate(state.target)}`;
     $('selection-description').textContent = state.target == null ? 'Highlighted tiles are adjacent enemies with less effective power.' : `Capture ${coordinate(state.target)} at power 1. Your source keeps ${state.tiles[state.attackSource].power - tile.power} power.`;
@@ -269,7 +322,7 @@ function resetSession() {
   if (state.busy) transaction('Wallet or board changed.', 'An already submitted transaction may still confirm. Check its hash in MetaMask before sending another move.', 'warning');
   state.busy = false;
   if (state.provider) { state.provider.removeAllListeners(); state.provider.destroy(); }
-  Object.assign(state, { provider: null, contract: null, ready: false, tiles: [], selected: null, attackSource: null, target: null, readError: '', pendingTiles: [] });
+  Object.assign(state, { provider: null, contract: null, ready: false, tiles: [], selected: null, attackSource: null, target: null, readError: '', pendingTiles: [], match: null });
   render();
 }
 
@@ -298,7 +351,7 @@ async function syncWallet(requestAccess = false) {
     const provider = new BrowserProvider(state.wallet);
     provider.pollingInterval = 2000;
     state.provider = provider;
-    state.contract = new Contract(state.address, ABI, provider);
+    state.contract = new Contract(state.address, boardAbi(), provider);
     const code = await provider.getCode(state.address);
     if (epoch !== state.epoch) return;
     if (code === '0x') throw new Error('No contract exists at this address on the selected network. Check Board settings.');
@@ -320,9 +373,10 @@ async function refreshBoard() {
     const block = BigInt(await provider.send('eth_blockNumber', []));
     const at = { blockTag: Number(block) };
     // All values describe one block, even if a new block arrives mid-request.
-    const [grid, score, cap, cooldown, decay, size] = await Promise.all([
+    const [grid, score, cap, cooldown, decay, size, match] = await Promise.all([
       contract.getGrid(at), contract.scoreOf(account, at), contract.maxPower(at),
       contract.reinforcementCooldown(at), contract.decayInterval(at), contract.BOARD_SIZE(at),
+      state.mode === 'match' ? readMatch(contract, at) : null,
     ]);
     if (epoch !== state.epoch || id !== state.refreshId) return false;
     if (size !== 8n || grid.length !== 64 || cap < 2n || cooldown < 1n || decay < 1n) throw new Error('This address does not contain a compatible Block Conquest board.');
@@ -332,12 +386,16 @@ async function refreshBoard() {
       return previous && (!sameAddress(previous.owner, tile.owner) || previous.power !== tile.power) ? [`${coordinate(index)}: ${isEmpty(tile) ? 'unclaimed' : `${sameAddress(tile.owner, account) ? 'your tile' : shortAddress(tile.owner)}, power ${tile.power}`}`] : [];
     });
     state.tiles = nextTiles;
+    const previousPhase = state.match?.phase;
+    Object.assign(state, { block, score, cap, cooldown, decay, match, ready: true, readError: '' });
     updateIdentities();
-    Object.assign(state, { block, score, cap, cooldown, decay, ready: true, readError: '' });
+    if (!canPlay()) { state.attackSource = null; state.target = null; }
     if (state.attackSource != null && !sameAddress(state.tiles[state.attackSource].owner, account)) state.attackSource = null;
     if (!canAttack(state.tiles, state.attackSource, state.target, account)) state.target = null;
     if (changes.length) announce(`Board updated. ${changes.slice(0, 4).join('; ')}${changes.length > 4 ? `; and ${changes.length - 4} more tiles changed.` : '.'}`);
-    notice(''); render(); return true;
+    notice(''); render();
+    if (match && previousPhase !== match.phase) announce(`${$('match-title').textContent} ${$('match-detail').textContent}`);
+    return true;
   } catch (error) {
     if (epoch !== state.epoch || id !== state.refreshId) return false;
     state.ready = false; state.readError = friendlyError(error);
@@ -345,12 +403,27 @@ async function refreshBoard() {
   }
 }
 
+async function readMatch(contract, at) {
+  try {
+    const keys = ['MATCH_VERSION', 'playerOne', 'playerTwo', 'startBlock', 'endBlock', 'matchDuration', 'phase', 'winner'];
+    const values = await Promise.all(keys.map(key => contract[key](at)));
+    const result = Object.fromEntries(keys.map((key, i) => [key, values[i]]));
+    if (result.MATCH_VERSION !== 1n) throw new Error('Unsupported match version.');
+    return result;
+  } catch (error) {
+    if (error.code === 'CALL_EXCEPTION' || error.code === 'BAD_DATA') throw new Error('This address is not a two-player match contract. Select Open board for the earlier deployment, or enter a new match address.');
+    throw error;
+  }
+}
+
 async function submitMove(method, indices) {
   if (!state.ready || state.busy || !state.account) return;
+  const view = matchStatus();
+  if (method === 'join' ? !view?.canJoin : method === 'finalize' ? !view?.canFinalize : !canPlay()) return;
   const epoch = state.epoch, operation = ++state.operation;
   const { provider, wallet, account, address, chain } = state;
   const args = indices.flatMap(index => [index % 8, Math.floor(index / 8)]);
-  const name = { claim: 'Claim', reinforce: 'Reinforcement', attack: 'Attack' }[method];
+  const name = { claim: 'Claim', reinforce: 'Reinforcement', attack: 'Attack', join: 'Join', finalize: 'Result' }[method];
   let hash = null;
   const current = () => epoch === state.epoch && operation === state.operation;
   state.busy = true; state.pendingTiles = indices; render();
@@ -359,7 +432,7 @@ async function submitMove(method, indices) {
     const [walletChain, accounts] = await Promise.all([wallet.request({ method: 'eth_chainId' }), wallet.request({ method: 'eth_accounts' })]);
     if (!current()) return;
     if (Number(walletChain) !== chain || !sameAddress(accounts[0], account)) throw new Error('Your wallet account or network changed. Reconnect before submitting.');
-    const contract = new Contract(address, ABI, await provider.getSigner(account));
+    const contract = new Contract(address, boardAbi(), await provider.getSigner(account));
     if (!current()) return;
     // Leave room for a slightly different decay/storage path in the inclusion
     // block. MetaMask still displays the fee and asks the user to confirm.
@@ -372,7 +445,7 @@ async function submitMove(method, indices) {
     const receipt = await tx.wait(1);
     if (!current()) return;
     if (!receipt || receipt.status !== 1) throw new Error('The transaction failed on-chain. Refresh and try again.');
-    state.attackSource = null; state.target = null; state.selected = indices.at(-1);
+    state.attackSource = null; state.target = null; state.selected = indices.at(-1) ?? null;
     if (method === 'attack') captureFeedback(indices.at(-1));
     transaction(`${name} confirmed.`, `Included in block ${receipt.blockNumber}. Your move is recorded on ${NETWORKS[chain].name}.`, 'success', receipt.hash, chain);
     await refreshBoard();
@@ -380,7 +453,7 @@ async function submitMove(method, indices) {
     if (!current()) return;
     if (error.code === 'TRANSACTION_REPLACED' && !error.cancelled && error.reason === 'repriced' && error.receipt?.status === 1) {
       state.attackSource = null; state.target = null;
-      state.selected = indices.at(-1);
+      state.selected = indices.at(-1) ?? null;
       if (method === 'attack') captureFeedback(indices.at(-1));
       transaction(`${name} confirmed.`, 'Your speed-up transaction was confirmed.', 'success', error.receipt.hash, chain);
     } else {
@@ -420,8 +493,9 @@ $('settings-form').addEventListener('submit', async event => {
   if (state.busy) { $('settings-error').textContent = 'Finish the current transaction before changing boards.'; return; }
   try {
     const chain = Number($('chain').value), address = validateAddress($('address').value.trim(), chain);
-    Object.assign(state, { chain, address });
-    try { localStorage.setItem('block-conquest:board', JSON.stringify({ chain, address })); } catch { /* Session-only config. */ }
+    const mode = $('board-mode').value;
+    Object.assign(state, { chain, address, mode });
+    try { localStorage.setItem('block-conquest:board', JSON.stringify({ chain, address, mode })); } catch { /* Session-only config. */ }
     $('settings-error').textContent = ''; $('settings').open = false;
     await syncWallet();
   } catch (error) { $('settings-error').textContent = friendlyError(error); }
@@ -441,6 +515,8 @@ $('switch-network').addEventListener('click', async () => {
   }
 });
 $('claim').addEventListener('click', () => void submitMove('claim', [state.selected]));
+$('join-match').addEventListener('click', () => void submitMove('join', []));
+$('finalize-match').addEventListener('click', () => void submitMove('finalize', []));
 $('reinforce').addEventListener('click', () => void submitMove('reinforce', [state.selected]));
 $('attack').addEventListener('click', () => { state.attackSource = state.selected; state.target = null; render(); cells[state.attackSource].focus(); announce('Choose an adjacent weaker enemy. Use arrow keys to move, Enter to select, Escape to cancel.'); });
 $('capture').addEventListener('click', () => { if (canAttack(state.tiles, state.attackSource, state.target, state.account)) void submitMove('attack', [state.attackSource, state.target]); });

@@ -7,7 +7,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "typecheck": "tsc --noEmit",
-    "deploy:rehearsal": "hardhat ignition deploy ignition/modules/BlockConquest.ts --network hardhatMainnet",
+    "deploy:rehearsal": "hardhat ignition deploy ignition/modules/BlockConquestMatch.ts --network hardhatMainnet",
     "export:abi": "hardhat compile && node scripts/export-abi.mjs",
     "predev": "npm run export:abi",
     "dev": "vite",

@@ -1,5 +1,7 @@
 # Sepolia deployment evidence
 
+This evidence is for the **earlier open-board `BlockConquest` contract**. It does not deploy or validate `BlockConquestMatch`. Select **Open board (earlier version)** to use this address in the frontend. See the README for the new match deployment instructions.
+
 ## Verified deployment
 
 | Item | Value |
