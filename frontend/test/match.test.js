@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ZeroAddress, Interface } from 'ethers';
-import { matchView } from '../src/match.js';
+import { matchView, recordedOutcome } from '../src/match.js';
 import { MATCH_ABI, friendlyError } from '../src/game.js';
 
 const a = '0x1111111111111111111111111111111111111111';
@@ -40,4 +40,20 @@ test('match errors explain a changed seat or deadline', () => {
   for (const [name, phrase] of [['MatchEnded', /deadline/], ['AlreadyJoined', /already has a seat/], ['MatchFull', /seats/], ['NotPlayer', /registered/], ['AlreadyFinalized', /already been recorded/]]) {
     assert.match(friendlyError({ data: iface.encodeErrorResult(name) }), phrase);
   }
+});
+
+test('completion requires the recorded on-chain winner, never expiration or projected scores', () => {
+  for (const phase of [0n, 1n, 2n]) {
+    assert.equal(recordedOutcome({ ...match, phase, winner: ZeroAddress }, a), null);
+    assert.equal(recordedOutcome({ ...match, phase, winner: b }, a), null);
+  }
+  const recorded = { ...match, phase: 3n, winner: b };
+  assert.deepEqual(recordedOutcome(recorded, b), { kind: 'victory', winner: b, seat: 2 });
+  assert.deepEqual(recordedOutcome(recorded, a), { kind: 'defeat', winner: b, seat: 2 });
+  assert.deepEqual(recordedOutcome(recorded, c), { kind: 'spectator', winner: b, seat: 2 });
+  assert.deepEqual(recordedOutcome({ ...recorded, winner: ZeroAddress }, a), { kind: 'draw', winner: ZeroAddress, seat: null });
+  assert.equal(recordedOutcome({ ...recorded, winner: c }, a), null);
+  assert.equal(recordedOutcome({ ...recorded, winner: undefined }, a), null);
+  assert.equal(recordedOutcome({ ...recorded, playerTwo: ZeroAddress }, a), null);
+  assert.equal(recordedOutcome(null, a), null);
 });

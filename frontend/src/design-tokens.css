@@ -1,0 +1,72 @@
+/* Direction C / Standard Bearer. Local fonts retain their OFL licenses in assets/fonts. */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../assets/fonts/BarlowCondensed-SemiBold.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Source Sans 3';
+  src: url('../assets/fonts/SourceSans3-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+}
+
+:root {
+  --ivory: #f4f1e8;
+  --navy: #182b3a;
+  --cobalt: #2459b8;
+  --cobalt-dark: #19478e;
+  --terracotta: #b94827;
+  --terracotta-dark: #94381f;
+  --brass: #b48728;
+  --gold: #efcf7b;
+
+  --surface-page: var(--ivory);
+  --surface-panel: #fff;
+  --surface-board: var(--navy);
+  --surface-tile-empty: #e9e8de;
+  --surface-tile-cobalt: var(--cobalt);
+  --surface-tile-ember: var(--terracotta);
+  --surface-estimate: #eae1c9;
+  --border-subtle: #d1cfc3;
+  --border-strong: var(--navy);
+  --text-primary: var(--navy);
+  --text-secondary: #5e655f;
+  --focus-ring: var(--cobalt);
+
+  --display: 'Barlow Condensed', 'Arial Narrow', 'Segoe UI', sans-serif;
+  --body: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'Cascadia Mono', 'Consolas', monospace;
+  --weight-display: 600;
+  --text-label: 0.75rem;
+  --text-interface: 0.875rem;
+  --text-body: 1rem;
+  --leading-body: 1.5;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --control-height: 44px;
+  --control-radius: 2px;
+  --content-width: 1340px;
+  --header-mark-width: 42px;
+  --header-mark-mobile-width: 29px;
+  --board-gap: 4px;
+  --border-width: 1px;
+  --rule-width: 2px;
+
+  /* Existing selectors use these aliases during incremental integration. */
+  --ink: var(--text-primary);
+  --paper: var(--surface-page);
+  --white: var(--surface-panel);
+  --line: var(--border-subtle);
+  --muted: var(--text-secondary);
+  --amber: var(--terracotta);
+}

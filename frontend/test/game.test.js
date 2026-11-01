@@ -10,6 +10,15 @@ test('leaderboard counts current owners, ignores empties, and sorts ties consist
   assert.deepEqual(leaderboard([tile(bob), tile(alice), tile(ZeroAddress), tile(bob)]), [{ owner: bob, score: 2 }, { owner: alice, score: 1 }]);
   assert.deepEqual(leaderboard([tile(bob), tile(alice)]).map(row => row.owner), [alice, bob]);
 });
+
+test('registered zero-score participants use the existing count and wallet-order ranking', () => {
+  assert.deepEqual(leaderboard([tile(bob), tile(bob), tile(ZeroAddress)], [alice, bob, alice, ZeroAddress]), [
+    { owner: bob, score: 2 }, { owner: alice, score: 0 },
+  ]);
+  assert.deepEqual(leaderboard([], [bob, alice, ZeroAddress]), [{ owner: alice, score: 0 }, { owner: bob, score: 0 }]);
+  assert.deepEqual(leaderboard([], [ZeroAddress]), []);
+  assert.deepEqual(leaderboard([]), []);
+});
 test('attack eligibility rejects wrapping, diagonals, friendly, empty, equal and weaker targets', () => {
   const board = Array.from({ length: 64 }, () => tile(ZeroAddress, 0n));
   board[7] = tile(alice, 3n); board[6] = tile(bob, 2n); board[8] = tile(bob, 1n); board[15] = tile(alice, 1n);

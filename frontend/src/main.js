@@ -1,5 +1,5 @@
 import { BrowserProvider, Contract, getAddress, ZeroAddress } from 'ethers';
-import { matchView } from './match.js';
+import { matchView, recordedOutcome } from './match.js';
 import { ABI, NETWORKS, sameAddress, isEmpty, shortAddress, coordinate, adjacent, validateAddress, leaderboard, ownerIdentities, decayRemaining, cooldownRemaining, canAttack, friendlyError } from './game.js';
 import './style.css';
 import { MATCH_ABI } from './game.js';
@@ -33,6 +33,8 @@ const matchStatus = () => state.ready && state.match ? matchView(state.match, st
 const canPlay = () => state.ready && (state.mode === 'open' || (state.match?.phase === 1n && [state.match.playerOne, state.match.playerTwo].some(owner => sameAddress(owner, state.account))));
 
 let captureTimer;
+let successSnapshot = null; // Presentation marker; never used for game decisions.
+let resultAttempt = null; // Presentation feedback scoped to the existing session/operation.
 const identityCache = new Map();
 function updateIdentities() {
   if (state.mode === 'match' && state.match) {
@@ -52,6 +54,21 @@ function updateIdentities() {
 }
 const identity = owner => state.identities.get(owner?.toLowerCase());
 const ownerLabel = owner => sameAddress(owner, state.account) ? 'You' : identity(owner)?.label;
+const boardCrests = {
+  cobalt: new URL('../assets/crest-cobalt.svg', import.meta.url).href,
+  ember: new URL('../assets/crest-ember.svg', import.meta.url).href,
+};
+// Visual factions follow registered seats; open-board identities remain unrestricted.
+function boardFaction(owner) {
+  if (state.mode !== 'match' || !state.match || !owner || sameAddress(owner, ZeroAddress)) return '';
+  return sameAddress(owner, state.match.playerOne) ? 'cobalt' : sameAddress(owner, state.match.playerTwo) ? 'ember' : '';
+}
+function boardCrest(owner, faction) {
+  const crest = faction ? document.createElement('img') : insignia(owner);
+  if (faction) { crest.src = boardCrests[faction]; crest.alt = ''; }
+  crest.classList.add('tile-crest'); crest.setAttribute('aria-hidden', 'true');
+  return crest;
+}
 function insignia(owner) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true'); svg.classList.add('insignia');
@@ -82,6 +99,7 @@ function notice(message) {
   $('setup-notice').hidden = !message;
 }
 function transaction(title, detail, type = '', hash = null, chain = state.chain) {
+  successSnapshot = type === 'success' ? state.tiles : null;
   $('transaction').className = `transaction-card ${type}`;
   $('tx-title').textContent = title;
   $('tx-detail').textContent = detail;
@@ -94,6 +112,7 @@ function transaction(title, detail, type = '', hash = null, chain = state.chain)
     else $('tx-link').removeAttribute('href');
     $('tx-link').title = hash;
   }
+  renderResult();
 }
 
 // Keep tile buttons stable during refreshes, so keyboard focus is preserved.
@@ -138,12 +157,13 @@ function render() {
   $('unloaded-title').textContent = state.readError ? 'The map could not load.' : wrongNetwork ? `Switch to ${network.name}.` : state.account ? 'Loading territory…' : 'Connect to reveal territory.';
   $('unloaded-detail').textContent = state.readError ? 'Check the message above, then reconnect or refresh.' : state.account && !state.address ? 'Choose a contract in Board settings.' : 'Ownership and power appear after the board loads.';
   $('grid').setAttribute('aria-busy', String(Boolean(state.contract && !state.ready && !state.readError)));
-  const leaders = leaderboard(state.ready ? state.tiles : []);
+  const participants = state.ready && state.mode === 'match' && state.match ? [state.match.playerOne, state.match.playerTwo] : [];
+  const leaders = leaderboard(state.ready ? state.tiles : [], participants);
   const claimed = leaders.reduce((sum, row) => sum + row.score, 0);
   $('my-score').textContent = state.ready ? String(state.score) : '—';
   $('claimed-count').replaceChildren(document.createTextNode(state.ready ? String(claimed) : '—'));
   const total = document.createElement('small'); total.textContent = ' / 64'; $('claimed-count').append(total);
-  $('player-count').textContent = state.ready ? String(leaders.length) : '—';
+  $('player-count').textContent = state.ready ? String(leaders.filter(row => row.score > 0).length) : '—';
   $('block-number').textContent = state.ready ? state.block.toLocaleString() : '—';
   $('sync-note').textContent = state.readError ? 'Refresh failed' : state.ready ? 'Refreshes with each block' : 'Waiting for a board';
   $('rule-decay').textContent = state.ready ? `Lose 1 power every ${state.decay} blocks, down to a floor of 1. Ownership stays yours.` : 'Power decays over blocks, but never below 1 on an owned tile.';
@@ -165,6 +185,10 @@ function render() {
     const eligible = canPlay() && canAttack(state.tiles, state.attackSource, index, state.account);
     button.className = `tile${empty ? ' unclaimed' : ' occupied'}${mine ? ' mine' : ''}${index === state.selected ? ' is-selected' : ''}${index === state.attackSource ? ' source' : ''}${eligible ? ' targetable' : ''}${index === state.captured ? ' just-captured' : ''}${state.pendingTiles.includes(index) ? ' move-pending' : ''}`;
     button.disabled = !state.ready || state.busy;
+    button.setAttribute('aria-busy', String(state.pendingTiles.includes(index)));
+    const faction = empty ? '' : boardFaction(tile.owner);
+    if (faction) button.dataset.faction = faction;
+    else delete button.dataset.faction;
     button.style.setProperty('--owner-hue', String(empty ? 0 : identity(tile.owner)?.hue ?? 0));
     if (empty) delete button.dataset.pattern;
     else button.dataset.pattern = String(identity(tile.owner).pattern);
@@ -176,6 +200,7 @@ function render() {
     if (!empty) {
       const marker = document.createElement('span'); marker.className = 'owner-marker'; marker.setAttribute('aria-hidden', 'true');
       marker.textContent = ownerLabel(tile.owner); button.append(marker);
+      button.append(boardCrest(tile.owner, faction));
     }
   });
   renderSelection();
@@ -191,15 +216,35 @@ function render() {
   $('dock-context').textContent = !state.ready || state.selected == null ? '' : state.busy ? 'Move in progress · check MetaMask' : preview ? `Estimate: ${coordinate(state.attackSource)} → ${coordinate(state.target)} · ${state.tiles[state.attackSource].power} − ${state.tiles[state.target].power} = ${state.tiles[state.attackSource].power - state.tiles[state.target].power} left · new tile 1` : `${coordinate(state.selected)} · ${isEmpty(state.tiles[state.selected]) ? 'Unclaimed · starts at power 1' : `${ownerLabel(state.tiles[state.selected].owner)} · power ${state.tiles[state.selected].power}`}`;
   $('leaderboard').replaceChildren();
   $('leaderboard-empty').hidden = leaders.length > 0;
-  $('leaderboard-empty').textContent = state.ready ? 'The board is waiting for its first conqueror.' : 'Load a board to see its current owners.';
+  $('leaderboard-empty').textContent = !state.ready ? 'Load a board to see its current standings.' : state.mode === 'match' ? 'No players have registered for this match.' : 'The board is waiting for its first conqueror.';
+  const standingsStatus = $('standings-status');
+  standingsStatus.hidden = !state.ready;
+  standingsStatus.textContent = !state.ready ? '' : state.mode === 'open' ? 'Open board · Live territory counts. No match deadline.'
+    : state.match?.phase === 3n ? 'Result recorded on-chain · Final territory counts.'
+    : state.match?.phase === 2n ? 'Deadline reached · Result not recorded on-chain.'
+    : state.match?.phase === 0n ? 'Waiting for two registered players. Territory begins when the match starts.'
+    : 'Live standings · Every owned tile adds one to the score.';
   leaders.forEach((row, i) => {
     const li = document.createElement('li');
+    const faction = boardFaction(row.owner);
+    const leading = i === 0 && row.score > (leaders[1]?.score ?? 0);
+    li.dataset.owner = row.owner;
+    li.dataset.leading = String(leading);
+    if (faction) li.dataset.faction = faction;
     const rank = document.createElement('span'); rank.className = 'rank'; rank.textContent = String(i + 1).padStart(2, '0');
     li.style.setProperty('--owner-hue', String(identity(row.owner).hue));
-    const swatch = document.createElement('span'); swatch.className = 'owner-swatch'; swatch.dataset.pattern = String(identity(row.owner).pattern); swatch.append(insignia(row.owner));
-    const owner = document.createElement('span'); owner.className = 'leader-owner'; owner.textContent = ownerLabel(row.owner); owner.title = row.owner;
-    const address = document.createElement('small'); address.textContent = shortAddress(row.owner); owner.append(address);
-    const score = document.createElement('strong'); score.textContent = `${row.score} ${row.score === 1 ? 'tile' : 'tiles'}`;
+    const swatch = document.createElement('span'); swatch.className = 'owner-swatch'; swatch.dataset.pattern = String(identity(row.owner).pattern);
+    const crest = boardCrest(row.owner, faction); crest.classList.remove('tile-crest'); crest.classList.add('standing-crest'); swatch.append(crest);
+    const owner = document.createElement('span'); owner.className = 'leader-owner'; owner.title = row.owner;
+    const name = document.createElement('span'); name.className = 'leader-name';
+    const factionName = faction === 'cobalt' ? 'Cobalt' : faction === 'ember' ? 'Ember' : '';
+    name.textContent = `${factionName ? factionName + ' · ' : ''}${ownerLabel(row.owner)}`;
+    if (leading) { const badge = document.createElement('span'); badge.className = 'standing-lead'; badge.textContent = 'Leading'; name.append(document.createTextNode(' '), badge); }
+    const address = document.createElement('small'); address.textContent = shortAddress(row.owner); address.title = row.owner; address.setAttribute('aria-label', `Wallet ${row.owner}`); owner.append(name, address);
+    const score = document.createElement('strong'); score.className = 'leader-score';
+    const value = document.createElement('span'); value.className = 'leader-score-value'; value.textContent = String(row.score);
+    const unit = document.createElement('span'); unit.className = 'leader-score-unit'; unit.textContent = ` ${row.score === 1 ? 'tile' : 'tiles'}`;
+    score.append(value, unit);
     const share = document.createElement('div'); share.className = 'territory-share';
     const track = document.createElement('div'); track.className = 'share-track'; track.setAttribute('aria-hidden', 'true');
     const fill = document.createElement('span'); fill.style.width = `${row.score / 64 * 100}%`; track.append(fill);
@@ -211,31 +256,149 @@ function render() {
 
 function renderMatch() {
   const mode = state.mode === 'match', view = matchStatus();
+  const outcome = completionOutcome();
   $('match-panel').hidden = !mode;
-  document.querySelector('.label-note').textContent = mode ? 'P1 and P2 match the registered seats. Your faction is marked “You”.' : 'Player labels stay with their addresses in this browser. Your faction is marked “You”.';
+  document.querySelector('.label-note').textContent = (mode ? 'Cobalt / P1 and Ember / P2 are the registered seats. ' : 'Player labels stay with their addresses in this browser. ') + 'Your faction is marked “You”. Ordered by territory count; equal counts use wallet-address order, not a winning tiebreak.';
   $('objective').textContent = mode ? 'Hold more territory when the countdown ends. Equal scores mean a draw.' : 'Hold more territory. Every owned tile adds one to your score. Open board: no match deadline.';
   $('join-match').hidden = !view?.canJoin;
   $('finalize-match').hidden = !view?.canFinalize;
   $('join-match').disabled = $('finalize-match').disabled = state.busy;
   $('match-scores').hidden = !view;
-  $('match-clock').textContent = !view ? '—' : view.waiting ? `${state.match.matchDuration} blocks / match` : view.active ? `${view.blocksLeft} blocks left` : '0 blocks left';
+  const clockValue = document.createElement('span'); clockValue.className = 'match-clock-value';
+  clockValue.textContent = !view ? '—' : view.waiting ? String(state.match.matchDuration) : view.active ? String(view.blocksLeft) : '0';
+  const clockUnit = document.createElement('span'); clockUnit.className = 'match-clock-unit';
+  clockUnit.textContent = !view ? '' : view.waiting ? ' blocks / match' : ' blocks left';
+  $('match-clock').replaceChildren(clockValue, clockUnit);
   $('match-deadline').textContent = view && !view.waiting ? `Deadline: block ${state.match.endBlock.toLocaleString()}` : 'The second join starts the clock.';
-  $('match-title').textContent = !view ? 'Two players. One winner.' : view.waiting ? view.emptySeats === 2 ? 'Take the first seat.' : 'Waiting for player two.' : view.active ? 'The match is on.' : sameAddress(view.result, ZeroAddress) ? 'Match drawn.' : sameAddress(view.result, state.account) ? 'You win.' : `Player ${sameAddress(view.result, state.match.playerOne) ? '1' : '2'} wins.`;
-  $('match-detail').textContent = !view ? 'Load a match contract and connect your wallet to join or watch.' : view.waiting ? view.joined ? 'Your seat is reserved. Share this contract address with your opponent.' : 'Join with a distinct wallet. Players start at A1 and H8 with 1 power each.' : view.active ? view.joined ? 'Claim, reinforce and capture. Every owned tile adds one to your score.' : 'You are watching. Only the two registered players can make moves.' : state.match.phase === 3n ? 'Final result recorded on-chain. This match is complete.' : 'Time is up. Scores are locked. Anyone can record the result with one transaction.';
-  if (view) view.players.forEach((owner, i) => {
-    const empty = sameAddress(owner, ZeroAddress);
-    $(`seat-${i + 1}`).textContent = empty ? 'Open seat' : `${sameAddress(owner, state.account) ? 'You' : `Player ${i + 1}`} · ${shortAddress(owner)}`;
-    $(`seat-${i + 1}`).title = empty ? '' : owner;
-    $(`seat-score-${i + 1}`).textContent = `${view.scores[i]} ${view.scores[i] === 1 ? 'tile' : 'tiles'}`;
+  $('match-title').textContent = !view ? 'Two players. One winner.' : view.waiting ? view.emptySeats === 2 ? 'Take the first seat.' : 'Waiting for player two.' : view.active ? 'The match is on.' : state.match.phase === 2n ? 'Time is up.' : !outcome ? 'Confirming the recorded result.' : outcome.kind === 'draw' ? 'Match drawn.' : outcome.kind === 'victory' ? 'You win.' : `Player ${outcome.seat} wins.`;
+  $('match-detail').textContent = !view ? 'Load a match contract and connect your wallet to join or watch.' : view.waiting ? view.joined ? 'Your seat is reserved. Share this contract address with your opponent.' : 'Join with a distinct wallet. Players start at A1 and H8 with 1 power each.' : view.active ? view.joined ? 'Claim, reinforce and capture. Every owned tile adds one to your score.' : 'You are watching. Only the two registered players can make moves.' : outcome ? 'Final result recorded on-chain. This match is complete.' : state.match.phase === 3n ? 'A recorded state was observed. Wait for confirmation and a current snapshot before trusting an outcome.' : 'Time is up. Scores are locked. Anyone can record the result with one transaction.';
+  // Factions belong to registered seats, never to the viewer or score ranking.
+  // Only the existing block-consistent snapshot supplies occupants and scores.
+  [1, 2].forEach(seat => {
+    const owner = view?.players[seat - 1];
+    const empty = !owner || sameAddress(owner, ZeroAddress);
+    const viewer = !empty && sameAddress(owner, state.account);
+    const card = document.querySelector(`[data-player-seat="${seat}"]`);
+    card.dataset.empty = String(empty);
+    card.dataset.you = String(viewer);
+    $(`seat-${seat}`).textContent = !view ? 'Load a match' : empty ? 'Open seat' : `${viewer ? 'You' : `Player ${seat}`} · ${shortAddress(owner)}`;
+    $(`seat-${seat}`).title = empty ? '' : owner;
+    $(`seat-${seat}`).setAttribute('aria-label', !view ? 'Player not loaded' : empty ? 'Open seat' : `${viewer ? 'Your wallet' : `Player ${seat} wallet`}: ${owner}`);
+    const score = $(`seat-score-${seat}`);
+    const count = empty ? null : view.scores[seat - 1];
+    score.querySelector('.seat-score-value').textContent = count == null ? '—' : String(count);
+    score.querySelector('.seat-score-unit').textContent = count === 1 ? ' tile' : ' tiles';
+    score.setAttribute('aria-label', count == null ? 'No score: seat unoccupied or not loaded' : `${count} ${count === 1 ? 'territory' : 'territories'}`);
   });
   $('join-match').textContent = view?.emptySeats === 1 ? 'Join & start match' : 'Join match';
   $('match-panel').dataset.phase = view ? String(state.match.phase) : 'unloaded';
-  if (view && !view.canPlay) $('board-hint').textContent = view.waiting ? 'Both players must join before any tiles can be claimed.' : view.ended ? 'Match complete. Select a tile to inspect the final board.' : 'Spectator view. Select a tile to inspect it.';
+  if (view && !view.canPlay) $('board-hint').textContent = view.waiting ? 'Both players must join before any tiles can be claimed.' : view.ended ? outcome ? 'Match complete. Select a tile to inspect the final board.' : 'Match expired. Inspect the locked board; the result is not yet confirmed in this view.' : 'Spectator view. Select a tile to inspect it.';
   if (view?.ended) $('rule-decay').textContent = 'Ownership, scores and effective power are frozen at the deadline.';
+  renderResult();
+}
+
+function completionOutcome() {
+  return state.mode === 'match' && state.ready && !state.busy && (successSnapshot === null || state.tiles !== successSnapshot)
+    ? recordedOutcome(state.match, state.account) : null;
+}
+
+function renderResult() {
+  const view = matchStatus(), outcome = completionOutcome();
+  const visible = state.mode === 'match' && (Boolean(view?.ended) || Boolean(state.readError && state.match?.phase >= 2n));
+  const section = $('match-result');
+  section.hidden = !visible;
+  $('match-panel').dataset.resultView = String(visible);
+  section.dataset.outcome = outcome?.kind ?? 'unresolved';
+  section.dataset.faction = outcome?.seat === 1 ? 'cobalt' : outcome?.seat === 2 ? 'ember' : '';
+  section.dataset.state = 'unrecorded';
+  $('result-title').textContent = 'The field is closed.';
+  $('result-kicker').textContent = 'RESULT NOT RECORDED';
+  $('result-recorded').textContent = 'Scores locked · Result not recorded on-chain';
+  $('result-detail').textContent = 'The deadline has passed. Ownership and power are frozen. Record the result to establish the on-chain outcome.';
+  $('result-feedback').hidden = true;
+  $('result-feedback').textContent = '';
+  $('result-tx-link').hidden = true;
+  $('result-contract').hidden = true;
+  $('result-crest').src = new URL('../assets/mark.svg', import.meta.url).href;
+  $('result-second-crest').hidden = true;
+  $('result-scores').hidden = !view;
+  $('result-score-label').textContent = outcome ? 'Final territory counts' : 'Locked territory counts';
+  [1, 2].forEach(seat => {
+    const owner = view?.players[seat - 1];
+    $(`final-score-${seat === 1 ? 'one' : 'two'}`).textContent = view ? String(view.scores[seat - 1]) : '—';
+    const player = $(`result-player-${seat === 1 ? 'one' : 'two'}`);
+    player.textContent = owner ? `${sameAddress(owner, state.account) ? 'You' : `P${seat}`} · ${shortAddress(owner)}` : '';
+    player.title = owner ?? '';
+  });
+  if (!visible) return;
+  const attempted = resultAttempt?.epoch === state.epoch && resultAttempt?.operation === state.operation;
+  const transaction = $('transaction');
+  const failed = attempted && transaction.classList.contains('error');
+  const receipt = attempted && transaction.classList.contains('success');
+  $('result-feedback').dataset.kind = failed || (!view && state.readError) ? 'error' : 'pending';
+  if (outcome) {
+    const name = outcome.seat === 1 ? 'Cobalt' : 'Ember';
+    section.dataset.state = 'recorded';
+    $('result-kicker').textContent = outcome.kind === 'spectator' ? `RECORDED RESULT / PLAYER 0${outcome.seat}` : `${outcome.kind.toUpperCase()} / RECORDED RESULT`;
+    $('result-title').textContent = outcome.kind === 'draw' ? 'An even field.' : `${name} holds the field.`;
+    $('result-detail').textContent = outcome.kind === 'draw' ? 'The contract recorded a draw. Neither faction wins this match.' : `The contract recorded ${name} as the winner. The final board remains available to inspect.`;
+    $('result-recorded').textContent = outcome.kind === 'spectator' ? `${name} win recorded on-chain` : `${outcome.kind[0].toUpperCase() + outcome.kind.slice(1)} recorded on-chain`;
+    $('result-crest').src = boardCrests[outcome.kind === 'draw' || outcome.seat === 1 ? 'cobalt' : 'ember'];
+    $('result-second-crest').hidden = outcome.kind !== 'draw';
+  } else if (!view) {
+    section.dataset.state = 'unavailable';
+    $('result-title').textContent = 'Result data unavailable.';
+    $('result-kicker').textContent = 'SNAPSHOT UNAVAILABLE';
+    $('result-recorded').textContent = receipt ? 'Receipt confirmed · Recorded result not yet verified' : 'A current result snapshot is required';
+    $('result-detail').textContent = 'The latest match data could not load. Refresh the board before trusting an outcome.';
+  } else if (receipt || state.match.phase === 3n) {
+    const fresh = !state.busy && (successSnapshot === null || state.tiles !== successSnapshot);
+    section.dataset.state = state.match.phase === 3n && fresh ? 'unavailable' : 'refreshing';
+    $('result-title').textContent = section.dataset.state === 'unavailable' ? 'Recorded result unavailable.' : 'Confirming the result.';
+    $('result-kicker').textContent = 'OUTCOME NOT YET VERIFIED';
+    $('result-recorded').textContent = 'Waiting for a confirmed, authoritative recorded result';
+    $('result-detail').textContent = section.dataset.state === 'unavailable' ? 'The recorded winner is unavailable or invalid. No winner has been inferred from territory counts. Refresh the board.' : 'A receipt or recorded state was observed. Wait for transaction confirmation and the latest board snapshot before viewing the outcome.';
+  } else if (failed) {
+    section.dataset.state = 'recording-error';
+    $('result-title').textContent = 'Recording needs attention.';
+  } else if (attempted && state.busy) {
+    section.dataset.state = 'recording';
+    $('result-title').textContent = 'Recording the result.';
+    $('result-kicker').textContent = 'RESULT RECORDING IN PROGRESS';
+    $('result-recorded').textContent = 'Awaiting confirmation · No final outcome shown';
+  }
+  if (attempted && (state.busy || failed) && !receipt) {
+    $('result-feedback').hidden = false;
+    $('result-feedback').textContent = `${$('tx-title').textContent} ${$('tx-detail').textContent}`;
+  }
+  if (!view && state.readError) {
+    $('result-feedback').hidden = false;
+    $('result-feedback').textContent = state.readError;
+  }
+  const txLink = $('tx-link');
+  if (attempted && !txLink.hidden) {
+    $('result-tx-link').hidden = false;
+    $('result-tx-link').textContent = txLink.textContent;
+    if (txLink.hasAttribute('href')) $('result-tx-link').href = txLink.href;
+    else $('result-tx-link').removeAttribute('href');
+    $('result-tx-link').title = txLink.title;
+  }
+  const total = view ? view.scores[0] + view.scores[1] : null;
+  $('result-territory').textContent = total == null ? 'Latest territory counts unavailable' : `${total} / 64 territories claimed · ${64 - total} unclaimed · Power frozen at deadline`;
+  $('result-deadline').textContent = view ? `Deadline: block ${state.match.endBlock.toLocaleString()} · 0 blocks left` : '';
+  const network = NETWORKS[state.chain];
+  $('result-network').textContent = `${network.name} · ${shortAddress(state.address)}`;
+  $('result-network').title = state.address;
+  if (network.explorer && state.address) { $('result-contract').hidden = false; $('result-contract').href = `${network.explorer}/address/${state.address}`; }
 }
 
 function renderSelection() {
   const tile = state.ready && state.selected != null ? state.tiles[state.selected] : null;
+  const panel = document.querySelector('.action-card');
+  const faction = tile ? boardFaction(tile.owner) : '';
+  panel.dataset.ownerFaction = faction;
+  // Presentation only: reveal success after the existing receipt + refresh flow.
+  panel.dataset.snapshotReady = String(state.ready && !state.busy && (successSnapshot === null || state.tiles !== successSnapshot));
   for (const id of ['claim', 'reinforce', 'attack', 'capture', 'cancel-attack']) { $(id).hidden = true; $(id).disabled = true; }
   $('tile-details').hidden = !tile;
   $('attack-preview').hidden = true;
@@ -243,9 +406,9 @@ function renderSelection() {
   if (!tile) {
     const view = matchStatus();
     if (view && !view.canPlay) {
-      $('selection-title').textContent = view.ended ? 'Match complete.' : view.waiting ? 'Join the conquest.' : 'Watch the match.';
+      $('selection-title').textContent = view.ended ? completionOutcome() ? 'Match complete.' : state.match.phase === 2n ? 'Match expired.' : 'Result pending.' : view.waiting ? 'Join the conquest.' : 'Watch the match.';
       $('selection-description').textContent = view.ended ? 'Select a tile to inspect the final board. No further moves can be made.' : view.waiting ? 'Use the match panel above to join. Both players receive a starting tile when the match begins.' : 'Select any tile to inspect its owner and power.';
-      $('action-help').textContent = view.canFinalize ? 'Record the result using the button in the match panel.' : view.waiting ? 'The second player’s join starts the countdown.' : 'Each owned tile adds one to the score.';
+      $('action-help').textContent = view.canFinalize ? 'Use Record final result above to record the on-chain outcome.' : view.waiting ? 'The second player’s join starts the countdown.' : 'Each owned tile adds one to the score.';
       return;
     }
     $('selection-title').textContent = state.ready ? 'Pick your territory.' : 'Your map awaits.';
@@ -257,8 +420,14 @@ function renderSelection() {
   const empty = isEmpty(tile), mine = sameAddress(tile.owner, state.account);
   const remaining = cooldownRemaining(tile, state.block, state.cooldown);
   $('tile-owner').replaceChildren();
-  if (!empty) $('tile-owner').append(insignia(tile.owner));
-  $('tile-owner').append(document.createTextNode(empty ? 'Unclaimed' : ownerLabel(tile.owner)));
+  if (!empty) {
+    const crest = boardCrest(tile.owner, faction);
+    crest.classList.remove('tile-crest'); crest.classList.add('action-crest');
+    $('tile-owner').append(crest);
+  }
+  const factionName = faction === 'cobalt' ? 'Cobalt' : faction === 'ember' ? 'Ember' : '';
+  $('tile-owner').append(document.createTextNode(empty ? 'Unclaimed' : `${factionName ? factionName + ' · ' : ''}${ownerLabel(tile.owner)}`));
+  $('tile-owner').title = empty ? '' : tile.owner;
   $('tile-owner').title = empty ? '' : tile.owner;
   $('tile-power').textContent = `${tile.power} / ${state.cap}`;
   $('tile-cooldown').textContent = empty ? 'Starts after claim' : remaining > 0n ? `Ready in ${remaining} ${remaining === 1n ? 'block' : 'blocks'}` : 'Ready';
@@ -266,7 +435,7 @@ function renderSelection() {
   $('tile-decay').textContent = empty ? 'No power yet' : decayLeft == null ? 'Minimum power reached' : `Next power loss in ${decayLeft} ${decayLeft === 1n ? 'block' : 'blocks'}`;
   if (!canPlay()) {
     const view = matchStatus();
-    $('selection-title').textContent = view?.ended ? 'Final territory.' : view?.waiting ? 'Waiting for players.' : 'Spectator view.';
+    $('selection-title').textContent = view?.ended ? completionOutcome() ? 'Final territory.' : 'Locked territory.' : view?.waiting ? 'Waiting for players.' : 'Spectator view.';
     $('selection-description').textContent = view?.ended ? 'The deadline has passed. Ownership and power are frozen.' : view?.waiting ? 'Join using the match panel above. Tiles unlock when the second player joins.' : 'Only the two registered players can make moves.';
     $('action-help').textContent = view?.ended ? 'Each owned tile counts toward the final score.' : 'You can inspect every tile.';
     if (view?.ended) { $('tile-cooldown').textContent = 'Match ended'; $('tile-decay').textContent = 'Frozen at deadline'; }
@@ -281,6 +450,8 @@ function renderSelection() {
     $('action-help').textContent = 'Power and ownership can change before your transaction is mined.';
     if (canAttack(state.tiles, state.attackSource, state.target, state.account)) {
       const source = state.tiles[state.attackSource];
+      $('attack-preview').dataset.sourceFaction = boardFaction(source.owner);
+      $('attack-preview').dataset.targetFaction = faction;
       $('attack-preview').hidden = false;
       $('preview-source').textContent = String(source.power);
       $('preview-defender').textContent = String(tile.power);
@@ -517,6 +688,7 @@ $('switch-network').addEventListener('click', async () => {
 $('claim').addEventListener('click', () => void submitMove('claim', [state.selected]));
 $('join-match').addEventListener('click', () => void submitMove('join', []));
 $('finalize-match').addEventListener('click', () => void submitMove('finalize', []));
+$('finalize-match').addEventListener('click', () => { resultAttempt = { epoch: state.epoch, operation: state.operation + 1 }; }, { capture: true });
 $('reinforce').addEventListener('click', () => void submitMove('reinforce', [state.selected]));
 $('attack').addEventListener('click', () => { state.attackSource = state.selected; state.target = null; render(); cells[state.attackSource].focus(); announce('Choose an adjacent weaker enemy. Use arrow keys to move, Enter to select, Escape to cancel.'); });
 $('capture').addEventListener('click', () => { if (canAttack(state.tiles, state.attackSource, state.target, state.account)) void submitMove('attack', [state.attackSource, state.target]); });

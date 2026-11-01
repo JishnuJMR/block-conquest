@@ -1,0 +1,111 @@
+/* Standard Bearer inspector. Native hidden/disabled state remains authoritative. */
+.side-panel { min-width: 0; background: transparent; border: 0; }
+.side-panel .action-card { padding: 15px 0 0; border-top: 3px solid var(--navy); }
+.action-card .section-heading .eyebrow { margin: 0; font-size: 11px; }
+.action-card .coordinate { background: var(--surface-tile-empty); color: var(--navy); padding: 5px 8px; font: 600 13px var(--mono); }
+.action-card .learning-strip { font-size: 12px; margin: 16px 0; color: var(--muted); }
+.action-card .learning-strip span { color: var(--navy); padding-inline: 3px; }
+.action-card h2 { font: var(--weight-display) 34px/1.05 var(--display); margin: 16px 0 0; overflow-wrap: anywhere; }
+.action-card #selection-description { font-size: 14px; line-height: 1.55; color: var(--muted); margin: 10px 0 16px; }
+.action-card dl { margin: 0 0 16px; border-top: 1px solid var(--line); }
+.action-card dl > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--line); padding: 10px 0; font-size: 13px; }
+.action-card dt { color: var(--muted); flex-shrink: 0; }
+.action-card dd { margin: 0; text-align: right; font-weight: 600; line-height: 1.5; min-width: 0; overflow-wrap: anywhere; }
+.action-card #tile-owner { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+.action-card .action-crest { display: block; width: 24px; height: 24px; flex-shrink: 0; }
+.action-card[data-owner-faction='cobalt'] #tile-owner, .action-card[data-owner-faction='cobalt'] #tile-power { color: var(--cobalt-dark); }
+.action-card[data-owner-faction='ember'] #tile-owner, .action-card[data-owner-faction='ember'] #tile-power { color: var(--terracotta-dark); }
+.action-card #tile-power { font: var(--weight-display) 24px/1.1 var(--display); }
+.action-card .action-dock { margin-top: 17px; }
+.action-card .dock-context, .action-card .dock-feedback { display: none; }
+.action-card .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.action-card .actions .button {
+  flex: 1 1 100%;
+  min-height: 47px;
+  border: 1px solid var(--navy);
+  border-radius: var(--control-radius);
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--navy);
+  background: transparent;
+}
+.action-card .actions .primary { background: var(--navy); color: var(--ivory); }
+.action-card .actions .primary:not(:disabled):hover { background: var(--cobalt-dark); }
+.action-card .actions .outline:not(:disabled):hover { background: var(--surface-tile-empty); }
+.action-card .actions .button:disabled { opacity: 1; color: var(--muted); border-color: var(--line); background: var(--surface-tile-empty); cursor: not-allowed; }
+.action-card .actions .text-button { flex: 1 1 100%; min-height: 44px; padding: 8px; font: 13px var(--body); text-align: center; }
+.action-card .actions .text-button:disabled { opacity: 1; color: var(--muted); }
+.action-card .form-help, .action-card .rule-note { font-size: 12px; line-height: 1.5; color: var(--muted); }
+.action-card .attack-preview { background: var(--surface-estimate); border-left: 2px solid var(--brass); padding: 13px 14px; margin: 18px 0; }
+.action-card .attack-preview .eyebrow { color: var(--navy); font-size: 11px; letter-spacing: 1px; }
+.action-card .combat-equation { display: flex; align-items: flex-start; justify-content: space-between; gap: 5px; }
+.action-card .combat-equation > div { flex: 1; min-width: 0; text-align: center; }
+.action-card .combat-equation strong { display: block; font: var(--weight-display) 38px/1 var(--display); font-variant-numeric: tabular-nums; }
+.action-card .combat-equation span { font-size: 11px; line-height: 1.3; display: block; margin-top: 6px; }
+.action-card .combat-equation b { font: 24px/36px var(--body); color: var(--navy); }
+.action-card .attack-preview[data-source-faction='cobalt'] #preview-source, .action-card .attack-preview[data-target-faction='cobalt'] #preview-defender { color: var(--cobalt-dark); }
+.action-card .attack-preview[data-source-faction='ember'] #preview-source, .action-card .attack-preview[data-target-faction='ember'] #preview-defender { color: var(--terracotta-dark); }
+.action-card .preview-result { font-size: 13px; line-height: 1.5; font-weight: 600; margin: 13px 0 0; border-top: 1px solid var(--brass); padding-top: 10px; }
+.action-card .preview-note { font-size: 12px; line-height: 1.5; margin: 8px 0 0; color: var(--navy); }
+.action-card .transaction-card { border-top: 1px solid var(--line); border-left: 0; padding: 13px 0 0; margin-top: 18px; overflow-wrap: anywhere; background: transparent; }
+.action-card .transaction-label { display: block; font-size: 10px; letter-spacing: 1px; margin-bottom: 8px; color: var(--muted); }
+.action-card .transaction-card strong { display: block; font: var(--weight-display) 23px/1.15 var(--display); color: var(--navy); }
+.action-card .transaction-card p { font-size: 13px; line-height: 1.5; margin: 8px 0 0; color: var(--muted); }
+.action-card .transaction-card a { font-size: 13px; display: inline-block; margin-top: 10px; text-underline-offset: 3px; }
+.action-card .transaction-card a { min-height: var(--control-height); padding-block: 10px; }
+.action-card .transaction-card.pending { border-top: 2px dashed var(--brass); }
+.action-card .transaction-card.pending strong::before { content: '… '; }
+.action-card .transaction-card.error { border-top: 2px solid var(--terracotta); }
+.action-card .transaction-card.error strong::before { content: '! '; }
+.action-card .transaction-card.error strong, .action-card .transaction-card.error p { color: var(--terracotta-dark); }
+.action-card .transaction-card.warning { border-top: 2px solid var(--brass); }
+.action-card .transaction-card.warning strong::before { content: '! '; }
+.action-card .transaction-card.success { border-top: 2px solid var(--cobalt); }
+.action-card .transaction-card.success strong { color: var(--cobalt-dark); }
+.action-card .transaction-card.success strong::before { content: '✓ '; }
+.action-card .snapshot-feedback { display: none; }
+/* Receipt handlers are unchanged. Gate their visual success until the existing
+   authoritative refresh finishes; a failed refresh stays explicitly unresolved. */
+.action-card[data-snapshot-ready='false'] .transaction-card.success { border-top: 2px dashed var(--brass); }
+.action-card[data-snapshot-ready='false'] .transaction-card.success > :not(.snapshot-feedback):not(#tx-link) { display: none; }
+.action-card[data-snapshot-ready='false'] .transaction-card.success .snapshot-feedback { display: block; color: var(--navy); }
+.action-card[data-snapshot-ready='false']:has(.transaction-card.success) .dock-feedback { display: none; }
+.action-card .rule-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; }
+.action-card .rule-chips span { font-size: 12px; border: 1px solid var(--line); padding: 5px 7px; }
+.action-card .rule-note { margin-bottom: 0; }
+
+@media (max-width: 900px) {
+  .side-panel { scroll-margin-bottom: 20px; }
+  .side-panel .action-card { display: flex; flex-direction: column; padding-top: 0; border-top: 0; }
+  .action-card h2 { font-size: 31px; }
+  .action-card #selection-description { font-size: 15px; }
+  .action-card .section-heading { padding-top: 14px; }
+  .action-card .learning-strip { margin-block: 12px; }
+  .action-card dl > div { font-size: 13px; }
+  .action-card .action-dock { margin-top: 12px; }
+  .has-selection .action-card .action-dock {
+    order: -1;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin: 0 0 12px;
+    padding: 8px 0;
+    border-block: 1px solid var(--navy);
+    background: var(--ivory);
+  }
+  .has-selection .action-card .dock-context { display: block; font: 600 13px/1.35 var(--body); margin-bottom: 7px; }
+  .has-selection .action-card .dock-feedback:not(:empty) { display: block; font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+  .has-selection .action-card[data-snapshot-ready='false']:has(.transaction-card.success) .dock-feedback { display: none; }
+  .has-selection .action-card .actions { gap: 8px; }
+  .has-selection .action-card .actions .button { flex: 1 1 0; min-width: 0; min-height: 46px; font-size: 14px; padding: 10px; justify-content: center; }
+  .has-selection .action-card .actions .button span { display: none; }
+  .has-selection .action-card .actions .text-button { flex: 0 1 auto; max-width: 104px; padding: 8px; }
+  .action-card .attack-preview { padding: 13px 14px; margin-top: 14px; }
+  .action-card > :not(.action-dock), .action-card a { scroll-margin-top: 160px; }
+}

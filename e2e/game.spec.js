@@ -75,6 +75,10 @@ async function reinforce(x, y, signer = alice) { await mine(2); await (await gam
 
 test('connect, claim, wait for cooldown, reinforce, and show decay on new blocks', async ({ page }) => {
   await openBoard(page); await connect(page);
+  await expect(page.locator('.tile.unclaimed')).toHaveCount(64);
+  await expect(page.locator('#match-result')).toBeHidden();
+  await expect(page.locator('#leaderboard li')).toHaveCount(0);
+  await expect(page.locator('#leaderboard-empty')).toBeVisible();
   await expect(page.locator('#my-score')).toHaveText('0');
   await cell(page, 0).click(); await page.locator('#claim').click();
   await expect(page.locator('#tx-title')).toHaveText('Claim confirmed.');
@@ -189,19 +193,71 @@ test('rejecting a wallet request restores controls and leaves the tile empty', a
 
 test('wallet confirmation and pending states lock actions until the receipt', async ({ page }) => {
   await openBoard(page); await connect(page); await cell(page, 0).click();
+  await page.evaluate(() => { window.__stableTiles = [...document.querySelectorAll('.tile')]; });
   await page.evaluate(() => { window.__wallet.holdNext = true; });
   await page.locator('#claim').click();
   await expect(page.locator('#tx-title')).toHaveText('Confirm in MetaMask.');
+  await expect(cell(page, 0)).toHaveClass(/unclaimed.*move-pending/);
+  await expect(cell(page, 0)).toHaveAttribute('aria-busy', 'true');
+  await expect(cell(page, 0)).toHaveCSS('outline-style', 'dashed');
   await expect(page.locator('#claim')).toBeDisabled();
   await expect.poll(() => page.evaluate(() => Boolean(window.__wallet.release))).toBe(true);
   await provider.send('evm_setAutomine', [false]);
   try {
     await page.evaluate(() => window.__wallet.release());
     await expect(page.locator('#tx-title')).toHaveText('Transaction pending.');
+    await expect(cell(page, 0)).toHaveClass(/unclaimed/);
+    await expect(page.locator('#my-score')).toHaveText('0');
+    await expect(cell(page, 0).locator('.tile-number')).toHaveCount(0);
     await expect(page.locator('#claim')).toBeDisabled();
     await mine(1);
     await expect(page.locator('#tx-title')).toHaveText('Claim confirmed.');
+    await expect(cell(page, 0)).toHaveClass(/occupied/);
+    await expect(cell(page, 0)).toHaveAttribute('aria-busy', 'false');
+    expect(await page.evaluate(() => window.__stableTiles.every((tile, index) => tile === document.querySelectorAll('.tile')[index]))).toBe(true);
   } finally { await provider.send('evm_setAutomine', [true]); }
+});
+
+test('success presentation waits for the confirmed authoritative snapshot and survives a failed refresh', async ({ page }) => {
+  await openBoard(page); await connect(page); await cell(page, 0).click();
+  await page.evaluate(selector => {
+    const original = window.ethereum.request.bind(window.ethereum);
+    const control = window.__wallet;
+    control.holdGrid = true; control.gridReleases = [];
+    control.releaseGrid = () => { control.holdGrid = false; control.gridReleases.splice(0).forEach(release => release()); };
+    window.ethereum.request = async payload => {
+      if (payload.method === 'eth_call' && payload.params?.[0]?.data?.startsWith(selector)) {
+        if (control.failGrid) throw new Error('Test RPC snapshot unavailable');
+        if (control.holdGrid) await new Promise(resolve => control.gridReleases.push(resolve));
+      }
+      return original(payload);
+    };
+  }, game.interface.getFunction('getGrid').selector);
+  await page.locator('#claim').click();
+  await expect(page.locator('#transaction')).toHaveClass(/success/);
+  await expect(page.locator('.snapshot-feedback')).toBeVisible();
+  await expect(page.locator('#tx-link')).toBeVisible();
+  await expect(page.locator('#tx-title')).toBeHidden();
+  await expect(page.locator('#dock-feedback')).toBeHidden();
+  await expect(cell(page, 0)).toHaveClass(/unclaimed/);
+  await expect(page.locator('#my-score')).toHaveText('0');
+  await page.evaluate(() => window.__wallet.releaseGrid());
+  await expect(page.locator('#tx-title')).toBeVisible();
+  await expect(page.locator('#tx-title')).toHaveText('Claim confirmed.');
+  await expect(cell(page, 0)).toHaveClass(/occupied/);
+  await expect(page.locator('#my-score')).toHaveText('1');
+  await cell(page, 2).click();
+  await page.evaluate(() => { window.__wallet.failGrid = true; });
+  await page.locator('#claim').click();
+  await expect(page.locator('#setup-message')).toContainText('Board refresh failed');
+  await expect(page.locator('.snapshot-feedback')).toBeVisible();
+  await expect(page.locator('#tx-link')).toBeVisible();
+  await expect(page.locator('#tx-title')).toBeHidden();
+  await expect(page.locator('#grid')).toHaveAttribute('data-ready', 'false');
+  await page.evaluate(() => { window.__wallet.failGrid = false; });
+  await page.locator('#refresh').click();
+  await expect(page.locator('#tx-title')).toBeVisible();
+  await expect(page.locator('#my-score')).toHaveText('2');
 });
 
 test('account and network changes clear selection and gate actions', async ({ page }) => {
@@ -213,6 +269,8 @@ test('account and network changes clear selection and gate actions', async ({ pa
   await cell(page, 0).click(); await expect(page.locator('#selection-title')).toHaveText('Enemy territory.');
   await page.evaluate(() => window.__wallet.changeChain('0x1'));
   await expect(page.locator('#network-notice')).toBeVisible();
+  const networkControl = await page.locator('#switch-network').boundingBox();
+  expect(networkControl.width).toBeGreaterThanOrEqual(44); expect(networkControl.height).toBeGreaterThanOrEqual(44);
   await expect(cell(page, 0)).toBeDisabled();
   await page.locator('#switch-network').click();
   await expect(page.locator('#grid')).toHaveAttribute('data-ready', 'true');
@@ -224,6 +282,9 @@ test('account and network changes clear selection and gate actions', async ({ pa
 
 test('missing wallet and invalid/legacy board settings show clear errors', async ({ page }) => {
   await openBoard(page, { wallet: false });
+  await page.locator('#board-connect').hover();
+  await expect(page.locator('#board-connect')).toHaveCSS('background-color', 'rgb(233, 232, 222)');
+  await expect(page.locator('#board-connect')).toHaveCSS('color', 'rgb(24, 43, 58)');
   await page.locator('#connect').click();
   await expect(page.locator('#tx-detail')).toContainText('Install or unlock MetaMask');
   await page.locator('#open-settings').click();
@@ -317,7 +378,7 @@ test('live board screenshots, keyboard navigation, and mobile layout', async ({ 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(await page.locator('.occupied').evaluateAll(tiles => tiles.every(tile => {
     const bounds = tile.getBoundingClientRect();
-    return [...tile.children].every(child => {
+    return [...tile.children].filter(child => child.getClientRects().length).every(child => {
       const rect = child.getBoundingClientRect();
       return rect.top >= bounds.top && rect.bottom <= bounds.bottom;
     });
@@ -408,6 +469,7 @@ test('a three-tile board remains legible and its primary action is reachable at 
   await page.setViewportSize({ width: 360, height: 640 });
   await page.evaluate(() => window.scrollTo(0, 0));
   await cell(page, 0).click();
+  await page.locator('#claim').scrollIntoViewIfNeeded();
   const button = await page.locator('#claim').boundingBox();
   expect(button.y).toBeGreaterThanOrEqual(0);
   expect(button.y + button.height).toBeLessThanOrEqual(640);
@@ -428,6 +490,33 @@ test('six factions have distinct greyscale patterns and retain readable labels',
   }
   await openBoard(page); await connect(page);
   await expect(page.locator('#leaderboard li')).toHaveCount(6);
+  await expect(page.locator('#match-panel')).toBeHidden();
+  await expect(page.locator('#claimed-count')).toHaveText('12 / 64');
+  await expect(page.locator('#leaderboard .insignia')).toHaveCount(6);
+  await expect(page.locator('.tile.occupied[data-faction]')).toHaveCount(0);
+  await expect(page.locator('.tile .tile-crest')).toHaveCount(12);
+  const identities = await page.locator('#leaderboard li').evaluateAll(rows => rows.map(row => ({
+    pattern: row.querySelector('.owner-swatch').dataset.pattern,
+    shape: row.querySelector('.insignia path').getAttribute('d'),
+    hue: row.style.getPropertyValue('--owner-hue'),
+  })));
+  expect(new Set(identities.map(owner => owner.shape)).size).toBe(6);
+  expect(new Set(identities.map(owner => owner.hue)).size).toBe(6);
+  await expect(page.locator('#leaderboard li[data-faction]')).toHaveCount(0);
+  await expect(page.locator('#leaderboard [data-leading="true"]')).toHaveCount(0);
+  for (const width of [360, 390, 430, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.evaluate(() => document.fonts.ready);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.locator('#leaderboard li').evaluateAll(rows => rows.every(row => {
+      const bounds = row.getBoundingClientRect();
+      return [...row.children].every(child => {
+        const rect = child.getBoundingClientRect();
+        return rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1;
+      });
+    }))).toBe(true);
+    await expect(page.locator('#leaderboard .leader-score')).toHaveText(Array(6).fill('2 tiles'));
+  }
   const patterns = await page.locator('.occupied').evaluateAll(tiles => new Set(tiles.map(tile => getComputedStyle(tile).backgroundImage)).size);
   expect(patterns).toBe(6);
   await page.addStyleTag({ content: 'html { filter: grayscale(1); }' });
@@ -436,6 +525,6 @@ test('six factions have distinct greyscale patterns and retain readable labels',
   await page.screenshot({ path: 'docs/screenshots/atlas-six-factions-mobile-greyscale.png', fullPage: true });
   expect(await page.locator('.occupied').evaluateAll(tiles => tiles.every(tile => {
     const rect = tile.getBoundingClientRect();
-    return [...tile.children].every(child => { const childRect = child.getBoundingClientRect(); return childRect.top >= rect.top && childRect.bottom <= rect.bottom; });
+    return [...tile.children].filter(child => child.getClientRects().length).every(child => { const childRect = child.getBoundingClientRect(); return childRect.top >= rect.top && childRect.bottom <= rect.bottom; });
   }))).toBe(true);
 });

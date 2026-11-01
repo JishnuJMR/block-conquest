@@ -24,8 +24,13 @@ export function validateAddress(value, chainId) {
   return getAddress(value);
 }
 
-export function leaderboard(tiles) {
+export function leaderboard(tiles, participants = []) {
   const counts = new Map();
+  // Registered seats may have no territory. Use the same count and sort path;
+  // the default open-board call still includes only current tile owners.
+  for (const owner of participants) {
+    if (owner && !sameAddress(owner, ZeroAddress)) counts.set(getAddress(owner), 0);
+  }
   for (const tile of tiles) {
     if (isEmpty(tile)) continue;
     const owner = getAddress(tile.owner);

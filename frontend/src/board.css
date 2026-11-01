@@ -1,0 +1,157 @@
+/* Standard Bearer presentation, scoped to the existing production board.
+   Ownership, power and interaction classes come only from the live renderer. */
+.board-card { min-width: 0; }
+.board-card .board-heading { margin-bottom: var(--space-4); }
+.board-card .title-dot { color: var(--terracotta); }
+.board-card .board-status { display: flex; gap: 20px; border-top: 1px solid var(--ink); padding: 11px 0; font: 11px var(--mono); color: var(--muted); }
+.board-card .board-status strong { color: var(--ink); font-weight: 700; }
+.board-card .board-status small { font: inherit; }
+.board-card .your-score { margin-left: auto; }
+.board-card .map-wrap {
+  position: relative;
+  width: 100%;
+  max-width: min(740px, max(440px, calc(100svh - 320px)));
+  margin-inline: auto;
+  background: var(--surface-board);
+  padding: 15px 16px 10px 10px;
+  border: 0;
+  container: territory / inline-size;
+}
+.board-card .map-wrap::before, .board-card .map-wrap::after { content: ''; position: absolute; pointer-events: none; }
+.board-card .map-wrap::before { top: 5px; left: 5px; width: 18px; height: 18px; border-top: 2px solid var(--brass); border-left: 2px solid var(--brass); }
+.board-card .map-wrap::after { bottom: 4px; right: 5px; width: 4px; height: 4px; background: var(--brass); }
+.board-card .board-frame { display: grid; grid-template-columns: 19px minmax(0, 1fr); grid-template-rows: 16px auto; gap: 6px; margin: auto; }
+.board-card .axis-corner { visibility: hidden; }
+.board-card .column-labels { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); text-align: center; }
+.board-card .row-labels { display: grid; grid-template-rows: repeat(8, minmax(0, 1fr)); align-items: center; text-align: center; }
+.board-card .column-labels, .board-card .row-labels { font: 11px var(--mono); color: var(--ivory); }
+.board-card .grid-wrap { position: relative; min-width: 0; }
+.board-card .grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: var(--board-gap); }
+.board-card .tile {
+  aspect-ratio: 1;
+  position: relative;
+  min-width: 0;
+  padding: 3px;
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-tile-empty);
+  color: var(--navy);
+  isolation: isolate;
+  touch-action: manipulation;
+  scroll-margin-block: 12px;
+}
+.board-card .tile:disabled { opacity: 1; }
+.board-card .tile.unclaimed { box-shadow: inset 0 0 0 1px #f4f1e866; }
+.board-card .tile.unclaimed::after { content: ''; width: 6px; height: 6px; position: absolute; border-top: 1px solid #9ba293; border-left: 1px solid #9ba293; pointer-events: none; }
+.board-card .empty-coordinate { position: relative; z-index: 1; font: 12px var(--mono); opacity: 0; }
+.board-card .tile.unclaimed:not(:disabled):hover { background: var(--ivory); }
+.board-card .tile.unclaimed:hover .empty-coordinate, .board-card .tile.unclaimed:focus-visible .empty-coordinate, .board-card .tile.unclaimed.is-selected .empty-coordinate { opacity: 1; }
+.board-card .tile.unclaimed:hover::after, .board-card .tile.unclaimed:focus-visible::after, .board-card .tile.unclaimed.is-selected::after { opacity: 0; }
+.board-card .tile.occupied {
+  --tile-fill: hsl(var(--owner-hue) 45% 32%);
+  --pattern-ink: hsl(var(--owner-hue) 50% 12% / .5);
+  color: var(--ivory);
+  background-color: var(--tile-fill);
+}
+/* Preserve all six open-board textures above the board's base surface rule. */
+.board-card .tile[data-pattern='0'] { background-image: repeating-linear-gradient(45deg, transparent 0 5px, var(--pattern-ink) 5px 7px); }
+.board-card .tile[data-pattern='1'] { background-image: radial-gradient(circle, var(--pattern-ink) 1.4px, transparent 1.6px); background-size: 7px 7px; }
+.board-card .tile[data-pattern='2'] { background-image: repeating-linear-gradient(0deg, transparent 0 6px, var(--pattern-ink) 6px 8px); }
+.board-card .tile[data-pattern='3'] { background-image: repeating-linear-gradient(90deg, transparent 0 6px, var(--pattern-ink) 6px 8px); }
+.board-card .tile[data-pattern='4'] { background-image: repeating-linear-gradient(45deg, transparent 0 8px, var(--pattern-ink) 8px 9px), repeating-linear-gradient(-45deg, transparent 0 8px, var(--pattern-ink) 8px 9px); }
+.board-card .tile[data-pattern='5'] { background-image: conic-gradient(var(--pattern-ink) 25%, transparent 0 50%, var(--pattern-ink) 0 75%, transparent 0); background-size: 12px 12px; }
+.board-card .tile[data-faction='cobalt'] {
+  --tile-fill: var(--surface-tile-cobalt);
+  --pattern-ink: #102b7470;
+  background-image: repeating-linear-gradient(135deg, transparent 0 9px, var(--pattern-ink) 9px 10px);
+}
+.board-card .tile[data-faction='ember'] {
+  --tile-fill: var(--surface-tile-ember);
+  --pattern-ink: #64271570;
+  background-image: radial-gradient(var(--pattern-ink) 1px, transparent 1.5px);
+  background-size: 7px 7px;
+}
+.board-card .tile.occupied:not(:disabled):hover { filter: brightness(1.08); }
+.board-card .tile-number { position: relative; z-index: 1; font: var(--weight-display) clamp(20px, 2.65vw, 34px)/1 var(--display); font-variant-numeric: tabular-nums; padding: 0; background: transparent; }
+.board-card .owner-marker { position: relative; z-index: 1; margin-top: 3px; font: 600 10px/1 var(--body); letter-spacing: .3px; padding: 0; background: transparent; }
+.board-card .tile .tile-crest { display: block; position: absolute; top: 5px; left: 5px; width: 13px; height: 13px; padding: 0; background: var(--ivory); pointer-events: none; }
+.board-card .tile.is-selected { outline: 3px solid var(--gold); outline-offset: -3px; box-shadow: inset 0 0 0 5px var(--navy); z-index: 2; }
+.board-card .tile.unclaimed.is-selected { outline-color: var(--navy); background: var(--ivory); box-shadow: inset 0 0 0 5px var(--ivory); }
+.board-card .tile.source { box-shadow: inset 0 0 0 2px var(--ivory); }
+.board-card .tile.source::after { content: ''; position: absolute; top: 4px; right: 4px; width: 4px; height: 4px; background: var(--ivory); }
+.board-card .tile.targetable { outline: 2px dashed var(--gold); outline-offset: -5px; }
+.board-card .tile.targetable.is-selected { outline: 3px solid var(--gold); outline-offset: -3px; box-shadow: inset 0 0 0 5px var(--navy); }
+.board-card .grid[data-attacking='true'] .tile:not(.source):not(.targetable) { opacity: 1; cursor: not-allowed; }
+/* Dim the surface, keeping ownership and power text at full contrast. */
+.board-card .grid[data-attacking='true'] .tile:not(.source):not(.targetable)::before { content: ''; position: absolute; inset: 0; z-index: 0; background: var(--navy); opacity: .28; pointer-events: none; }
+.board-card .grid[data-attacking='true'] .tile:not(.source):not(.targetable):hover { outline: 1px solid var(--ivory); outline-offset: -3px; }
+.board-card .tile.move-pending, .board-card .tile.move-pending.is-selected { outline: 2px dashed var(--ivory); outline-offset: -3px; box-shadow: inset 0 0 0 5px var(--navy); cursor: wait; }
+.board-card .tile.move-pending::after { content: '…'; opacity: 1; position: absolute; top: 3px; right: 3px; left: auto; bottom: auto; width: 12px; height: 12px; border: 0; color: var(--ivory); background: var(--navy); font: 700 12px/9px var(--body); }
+.board-card .tile.unclaimed.move-pending::after { opacity: 1; }
+.board-card .tile:focus-visible, .board-card .tile.is-selected:focus-visible { outline: 2px solid var(--ivory); outline-offset: 1px; z-index: 4; }
+.board-card #grid:focus-visible { outline: 2px solid var(--ivory); outline-offset: 3px; }
+.board-card .attack-line { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; overflow: visible; color: var(--gold); filter: drop-shadow(1px 0 0 var(--navy)) drop-shadow(-1px 0 0 var(--navy)) drop-shadow(0 1px 0 var(--navy)) drop-shadow(0 -1px 0 var(--navy)); }
+.board-card .attack-line line { stroke: currentColor; stroke-width: 4; stroke-linecap: square; }
+.board-card .board-unloaded { position: absolute; inset: 0; z-index: 6; background: #182b3af5; color: var(--ivory); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 13px; padding: var(--space-6); }
+.board-card .board-unloaded strong { font: var(--weight-display) 28px/1.1 var(--display); }
+.board-card .board-unloaded > span:not(.eyebrow) { font-size: 14px; max-width: 260px; line-height: 1.5; }
+.board-card .board-unloaded .eyebrow { margin: 0; color: var(--ivory); }
+.board-card .board-unloaded .button { margin-top: var(--space-2); background: var(--ivory); color: var(--navy); }
+.board-card .board-unloaded .button:not(:disabled):hover { background: var(--surface-tile-empty); color: var(--navy); }
+.board-card .board-hint { font-size: 13px; line-height: 1.5; margin: 12px 0; color: var(--muted); }
+.board-card .board-key { display: flex; flex-wrap: wrap; gap: 10px 16px; font: 12px var(--body); color: var(--muted); }
+.board-card .board-key > span { display: flex; align-items: center; gap: 6px; }
+.board-card .key { display: inline-block; width: 11px; height: 11px; background: var(--surface-tile-empty); border: 1px solid var(--line); }
+.board-card .key.selected { background: var(--navy); border: 2px solid var(--gold); box-shadow: 0 0 0 1px var(--navy); }
+.board-card .key.target { background: var(--navy); border: 1.5px dashed var(--gold); }
+.board-card .key.pending { background: var(--navy); border: 1px dashed var(--ivory); box-shadow: 0 0 0 1px var(--navy); }
+.board-card .power-key { margin-left: auto; font-size: 10px; }
+.board-card .tile.just-captured { animation: capture-pulse 440ms ease-out; }
+@keyframes capture-pulse { from { box-shadow: inset 0 0 0 6px var(--gold); } to { box-shadow: inset 0 0 0 0 transparent; } }
+
+/* A tablet's board can be narrow beside the existing inspector. */
+@container territory (max-width: 480px) {
+  .board-card .tile .tile-crest { display: none; }
+  .board-card .tile-number { font-size: 21px; }
+  .board-card .owner-marker { font-size: 9px; margin-top: 1px; }
+}
+
+@media (max-width: 760px) {
+  .board-card .board-heading { margin-bottom: var(--space-3); }
+  .board-card .board-heading .eyebrow { font-size: 10px; }
+  .board-card .board-status { font-size: 10px; gap: var(--space-2); padding: 9px 0; }
+  .board-card .map-wrap { max-width: 560px; padding: 9px 9px 7px 5px; }
+  .board-card .map-wrap::before { width: 13px; height: 13px; border-width: 1px; top: 3px; left: 3px; }
+  .board-card .board-frame { grid-template-columns: 14px minmax(0, 1fr); grid-template-rows: 13px auto; gap: 4px; }
+  .board-card .column-labels, .board-card .row-labels { font-size: 10px; }
+  .board-card .grid { gap: 3px; }
+  .board-card .tile { padding: 1px; }
+  .board-card .tile-number { font-size: 21px; }
+  .board-card .owner-marker { font-size: 9px; margin-top: 1px; letter-spacing: 0; }
+  .board-card .empty-coordinate { font-size: 10px; }
+  .board-card .tile.unclaimed::after { width: 4px; height: 4px; }
+  .board-card .tile .tile-crest { display: none; }
+  .board-card .tile.is-selected, .board-card .tile.targetable.is-selected { outline-width: 2px; outline-offset: -2px; box-shadow: inset 0 0 0 4px var(--navy); }
+  .board-card .tile.unclaimed.is-selected { box-shadow: inset 0 0 0 4px var(--ivory); }
+  .board-card .tile.targetable { outline-width: 1.5px; outline-offset: -4px; }
+  .board-card .tile.source { box-shadow: inset 0 0 0 1.5px var(--ivory); }
+  .board-card .tile.source::after { top: 3px; right: 3px; width: 3px; height: 3px; }
+  .board-card .tile.move-pending, .board-card .tile.move-pending.is-selected { outline-width: 2px; outline-offset: -2px; box-shadow: inset 0 0 0 4px var(--navy); }
+  .board-card .tile.move-pending::after { width: 9px; height: 9px; }
+  .board-card .tile:focus-visible, .board-card .tile.is-selected:focus-visible { outline: 2px solid var(--ivory); outline-offset: 1px; }
+  .board-card .board-unloaded { padding: var(--space-4); gap: var(--space-2); }
+  .board-card .board-unloaded strong { font-size: 24px; }
+  .board-card .board-unloaded > span:not(.eyebrow) { font-size: 13px; }
+  .board-card .power-key { flex-basis: 100%; margin-left: 0; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .board-card .tile.just-captured { animation: none; outline: 2px solid var(--gold); outline-offset: -2px; }
+}
+@media (max-width: 350px) {
+  .board-card .tile-number { font-size: 18px; }
+  .board-card .owner-marker { font-size: 8px; }
+}

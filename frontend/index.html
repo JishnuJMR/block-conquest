@@ -3,14 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#eaeff3" />
+  <meta name="theme-color" content="#f4f1e8" />
   <meta name="description" content="Block Conquest — a shared territory game on Sepolia. Claim tiles, build power, capture a weaker neighbour." />
-  <title>Block Conquest · Survey Atlas</title>
+  <title>Block Conquest · Every square counts.</title>
 </head>
 <body>
   <a class="skip-link" href="#grid">Skip to the board</a>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="Block Conquest home"><svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true"><path d="M2 2h24v12H14v12H2zM18 18h24v24H18z" fill="currentColor"/><path d="M26 26h8v8h-8z" fill="#eaeff3"/></svg><span>BLOCK<br>CONQUEST<span class="brand-edition">SURVEY ATLAS / 001</span></span></a>
+    <a class="brand" href="./" aria-label="Block Conquest home">
+      <img class="brand-mark" src="./assets/mark.svg" width="44" height="48" alt="" />
+      <span class="wordmark"><span class="wordmark-top">BLOCK<i class="advance-mark" aria-hidden="true"></i></span><span class="wordmark-bottom">CONQUEST<span class="brand-period" aria-hidden="true"></span></span></span>
+      <span class="brand-caption">EVERY SQUARE<br>COUNTS.</span>
+    </a>
     <div class="wallet-bar"><span id="connection-state" class="connection-state">Wallet disconnected</span><div class="wallet-actions"><button id="connect" class="button primary">Connect wallet ↗</button><button id="disconnect" class="button outline" hidden>Disconnect</button></div></div>
   </header>
   <main>
@@ -28,8 +32,30 @@
     <div id="network-notice" class="notice warning" hidden><span id="network-message"></span><button id="switch-network" class="button small">Switch network</button></div>
     <section id="match-panel" class="match-panel" aria-labelledby="match-title">
       <div class="match-intro"><p class="eyebrow">TWO-PLAYER MATCH</p><h2 id="match-title">Two players. One winner.</h2><p id="match-detail">Load a match contract to join or watch.</p></div>
-      <div class="match-timing"><strong id="match-clock">—</strong><span id="match-deadline">The second join starts the clock.</span><button id="join-match" class="button primary" hidden>Join match</button><button id="finalize-match" class="button primary" hidden>Record final result</button></div>
-      <div id="match-scores" class="match-scores" hidden><div><span>PLAYER 1 / A1</span><strong id="seat-1">Open seat</strong><b id="seat-score-1">0 tiles</b></div><div><span>PLAYER 2 / H8</span><strong id="seat-2">Open seat</strong><b id="seat-score-2">0 tiles</b></div></div>
+      <div id="match-scores" class="match-scores" role="group" aria-label="Registered players and territory scores" hidden>
+        <article class="seat-card" data-player-seat="1" data-faction="cobalt" aria-labelledby="seat-name-1">
+          <img class="seat-crest" src="./assets/crest-cobalt.svg" width="40" height="40" alt="" />
+          <span class="seat-label">PLAYER 1 / A1</span>
+          <h3 id="seat-name-1" class="seat-name">Cobalt</h3>
+          <span id="seat-1" class="seat-address">Open seat</span>
+          <b id="seat-score-1" class="seat-score"><span class="seat-score-value">—</span><span class="seat-score-unit"> tiles</span></b>
+        </article>
+        <div class="match-timing"><strong id="match-clock">—</strong><span id="match-deadline">The second join starts the clock.</span><button id="join-match" class="button primary" hidden>Join match</button></div>
+        <article class="seat-card" data-player-seat="2" data-faction="ember" aria-labelledby="seat-name-2">
+          <img class="seat-crest" src="./assets/crest-ember.svg" width="40" height="40" alt="" />
+          <span class="seat-label">PLAYER 2 / H8</span>
+          <h3 id="seat-name-2" class="seat-name">Ember</h3>
+          <span id="seat-2" class="seat-address">Open seat</span>
+          <b id="seat-score-2" class="seat-score"><span class="seat-score-value">—</span><span class="seat-score-unit"> tiles</span></b>
+        </article>
+      </div>
+    </section>
+    <section id="match-result" class="match-result" aria-labelledby="result-title" hidden>
+      <div class="result-emblem" aria-hidden="true"><img id="result-crest" src="./assets/mark.svg" width="44" height="48" alt="" /><img id="result-second-crest" src="./assets/crest-ember.svg" width="40" height="40" alt="" hidden /><span>BLOCK CONQUEST</span></div>
+      <div class="result-copy"><p id="result-kicker" class="eyebrow">RESULT NOT RECORDED</p><h2 id="result-title">The field is closed.</h2><p id="result-detail"></p><p id="result-recorded" class="result-recorded" role="status" aria-live="polite" aria-atomic="true"></p><p id="result-feedback" class="result-feedback" hidden></p><a id="result-tx-link" target="_blank" rel="noopener noreferrer" hidden>View recording transaction ↗</a></div>
+      <div id="result-scores" class="result-scores" aria-labelledby="result-score-label"><p id="result-score-label">Locked territory counts</p><div><img src="./assets/crest-cobalt.svg" width="40" height="40" alt="" /><span>Cobalt<small id="result-player-one"></small></span><strong id="final-score-one">—</strong></div><div><img src="./assets/crest-ember.svg" width="40" height="40" alt="" /><span>Ember<small id="result-player-two"></small></span><strong id="final-score-two">—</strong></div></div>
+      <div class="result-controls"><button id="finalize-match" class="button primary" hidden>Record final result</button><a class="button outline" href="#grid">Inspect the board ↘</a></div>
+      <div class="result-provenance"><span id="result-territory"></span><span id="result-deadline"></span><span id="result-network"></span><a id="result-contract" target="_blank" rel="noopener noreferrer" hidden>View contract ↗</a></div>
     </section>
     <div class="workspace">
       <section class="board-card" aria-labelledby="board-title">
@@ -40,28 +66,28 @@
           <div id="board-unloaded" class="board-unloaded"><span class="eyebrow">LIVE MAP UNLOADED</span><strong id="unloaded-title">Connect to reveal territory.</strong><span id="unloaded-detail">Ownership and power appear after the board loads.</span><button id="board-connect" class="button primary">Connect MetaMask ↗</button></div>
         </div>
         <p id="board-hint" class="board-hint">Connect your wallet to load live territory.</p>
-        <div class="board-key"><span><i class="key empty"></i>Unclaimed</span><span><i class="key selected"></i>Selected</span><span><i class="key target"></i>Attackable</span><span class="power-key">Number = power · label + pattern = owner</span></div>
+        <div class="board-key"><span><i class="key empty"></i>Unclaimed</span><span><i class="key selected"></i>Selected</span><span><i class="key target"></i>Attackable</span><span><i class="key pending"></i>Pending</span><span class="power-key">Number = power · label + pattern = owner</span></div>
       </section>
       <aside class="side-panel">
         <section class="action-card" aria-labelledby="selection-title">
-          <div class="section-heading"><p class="eyebrow">02 / YOUR MOVE</p><span id="selection-coordinate" class="coordinate">—</span></div>
+          <div class="section-heading"><p class="eyebrow">02 / TILE ACTIONS</p><span id="selection-coordinate" class="coordinate">—</span></div>
           <p class="learning-strip">Claim <span>→</span> Build power <span>→</span> Capture</p>
           <h2 id="selection-title">Pick your territory.</h2><p id="selection-description">Select a tile to see your next move.</p>
           <dl id="tile-details" hidden><div><dt>Owner</dt><dd id="tile-owner"></dd></div><div><dt>Effective power</dt><dd id="tile-power"></dd></div><div><dt>Reinforcement</dt><dd id="tile-cooldown"></dd></div><div><dt>Decay</dt><dd id="tile-decay"></dd></div></dl>
           <section id="attack-preview" class="attack-preview" aria-label="Attack outcome estimate" hidden><p class="eyebrow">ATTACK ESTIMATE</p><div class="combat-equation"><div><strong id="preview-source"></strong><span>Your power</span></div><b aria-hidden="true">−</b><div><strong id="preview-defender"></strong><span>Defence</span></div><b aria-hidden="true">=</b><div><strong id="preview-remaining"></strong><span>Source keeps</span></div></div><p id="preview-result" class="preview-result"></p><p class="preview-note">An estimate from the latest loaded block. Power and ownership may change when your transaction is included.</p></section>
           <div id="action-dock" class="action-dock"><span id="dock-context" class="dock-context"></span><span id="dock-feedback" class="dock-feedback" aria-hidden="true"></span><div class="actions"><button id="claim" class="button primary" disabled>Claim tile <span aria-hidden="true">＋</span></button><button id="reinforce" class="button primary" hidden disabled>Reinforce <span aria-hidden="true">↑</span></button><button id="attack" class="button outline" hidden disabled>Choose attack target <span aria-hidden="true">↗</span></button><button id="capture" class="button primary" hidden disabled>Confirm attack</button><button id="cancel-attack" class="text-button" hidden>Cancel attack</button></div></div>
           <p id="action-help" class="form-help">Every move is a transaction you confirm in MetaMask.</p>
-          <section id="transaction" class="transaction-card" aria-live="polite" aria-atomic="true"><span class="transaction-label">MOVE STATUS</span><strong id="tx-title">Ready when you are.</strong><p id="tx-detail">Your transaction progress will appear here.</p><a id="tx-link" target="_blank" rel="noopener noreferrer" hidden>View transaction ↗</a></section>
+          <section id="transaction" class="transaction-card" aria-live="polite" aria-atomic="true"><span class="transaction-label">MOVE STATUS</span><strong id="tx-title">Ready when you are.</strong><p id="tx-detail">Your transaction progress will appear here.</p><p class="snapshot-feedback">Receipt confirmed. Waiting for the latest board snapshot. If it cannot load, refresh the board.</p><a id="tx-link" target="_blank" rel="noopener noreferrer" hidden>View transaction ↗</a></section>
           <div class="rule-chips"><span id="cap-chip">Cap —</span><span id="cooldown-chip">Cooldown —</span></div><p id="rule-decay" class="rule-note">Timing is measured in blocks. Load the board to see its rules.</p>
         </section>
       </aside>
     </div>
-    <section class="leaderboard-card" aria-labelledby="leaderboard-title"><div class="section-heading"><div><p class="eyebrow">03 / CURRENT OWNERS</p><h2 id="leaderboard-title">Factions</h2></div><span class="muted">Territory share of all 64 tiles</span></div><div id="leaderboard-empty" class="empty-leaderboard">Load a board to see its current owners.</div><ol id="leaderboard" class="leaderboard"></ol><p class="label-note">Player labels stay with their addresses in this browser. Your faction is marked “You”.</p></section>
+    <section class="leaderboard-card" aria-labelledby="leaderboard-title"><div class="section-heading"><div><p class="eyebrow">03 / TERRITORY STANDINGS</p><h2 id="leaderboard-title">Standings</h2></div><span class="muted">Territory share of all 64 tiles</span></div><p id="standings-status" class="standings-status" hidden></p><div id="leaderboard-empty" class="empty-leaderboard">Load a board to see its current standings.</div><ol id="leaderboard" class="leaderboard" aria-label="Territory rankings"></ol><p class="label-note">Player labels stay with their addresses in this browser. Your faction is marked “You”.</p></section>
     <section class="guide-section"><div class="section-heading"><div><p class="eyebrow">04 / FIELD GUIDE</p><h2>How conquest works</h2></div><button id="show-guide" class="text-button" aria-controls="conquest-guide" aria-expanded="true">How to play</button></div>
       <div id="conquest-guide" class="conquest-guide"><ol class="guide-steps"><li><span class="step-number">01</span><div><strong>Claim territory</strong><p>Choose any empty tile. It becomes yours with 1 power.</p></div></li><li><span class="step-number">02</span><div><strong>Build power</strong><p id="guide-build">Reinforce when ready. The board sets its power cap and cooldown.</p></div></li><li><span class="step-number">03</span><div><strong>Capture a weaker neighbour</strong><p>Attack up, down, left or right. Your power must be greater. Your source pays the defender’s power; your new tile starts at 1.</p></div></li></ol><div class="guide-bottom"><p>Power decays; ownership stays. Every move needs a MetaMask confirmation and test ETH for gas.</p><button id="dismiss-guide" class="text-button" aria-label="Dismiss how to play">Got it</button></div></div>
     </section>
     <p id="board-announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
-    <footer><span>BLOCK CONQUEST <span class="footer-divider">/</span> SURVEY ATLAS</span><span id="contract-footer">Contract not configured</span><span>Programmed rules. Shared territory.</span></footer>
+    <footer><span>BLOCK CONQUEST <span class="footer-divider">/</span> STANDARD BEARER</span><span id="contract-footer">Contract not configured</span><span>Programmed rules. Shared territory.</span></footer>
   </main>
   <script type="module" src="/src/main.js"></script>
 </body>
