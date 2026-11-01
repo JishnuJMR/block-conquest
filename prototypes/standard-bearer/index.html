@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f1e8">
+  <meta name="description" content="Standard Bearer: an isolated Block Conquest design prototype with mock territory and local interactions.">
+  <title>Block Conquest — Standard Bearer prototype</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/mark.svg">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./hybrid.css">
+</head>
+<body>
+  <a href="#board" class="skip">Skip to the board</a>
+  <svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="crest-one" viewBox="0 0 40 40"><path d="M5 3h30v25L20 38 5 28Z" fill="currentColor"/><path d="M11 11h18v6H18v6h11v6H11Z" fill="var(--ivory)"/></symbol>
+      <symbol id="crest-two" viewBox="0 0 40 40"><path d="m20 2 16 10v16L20 38 4 28V12Z" fill="currentColor"/><path d="m10 16 10-8 11 20h-7l-6-11-8 6Zm0 10 7-5 4 7-5 4Z" fill="var(--ivory)"/></symbol>
+      <symbol id="arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+      <symbol id="plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+      <symbol id="cross" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="icon-reset" viewBox="0 0 24 24"><path d="M4 9a8 8 0 1 1 0 6M4 3v6h6"/></symbol>
+      <symbol id="pending-icon" viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M8 3v5l4 4-4 4v5M16 3v5l-4 4 4 4v5"/></symbol>
+      <symbol id="claim-icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4Z"/><path d="M8 12h8M12 8v8"/></symbol>
+      <symbol id="reinforce-icon" viewBox="0 0 24 24"><path d="m5 10 7-6 7 6M5 16l7-6 7 6M5 22l7-6 7 6"/></symbol>
+      <symbol id="success-icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    </defs>
+  </svg>
+  <div class="app">
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="Block Conquest prototype home">
+        <img src="./assets/mark.svg" width="42" height="46" alt="">
+        <span class="wordmark"><span class="wordmark-top">BLOCK<i class="advance-mark" aria-hidden="true"></i></span><span class="wordmark-bottom">CONQUEST<span class="brand-period" aria-hidden="true"></span></span></span>
+        <span class="brand-caption">EVERY SQUARE<br>COUNTS.</span>
+      </a>
+      <div class="header-tools">
+        <span class="prototype-label"><i></i> DESIGN PROTOTYPE <span>· MOCK DATA</span></span>
+        <div class="header-links"><a href="./identity.html">Identity study</a><button id="guide-open" class="quiet-button">Field guide <span aria-hidden="true">?</span></button></div>
+      </div>
+    </header>
+
+    <main>
+      <section id="scoreboard" class="scoreboard" aria-label="Mock two-player match scoreboard">
+        <div class="competitor cobalt">
+          <svg class="crest" aria-hidden="true"><use href="#crest-one"/></svg>
+          <div><span class="micro"><span id="player-label-one">PLAYER 01</span> <span class="you-tag">YOU</span></span><strong class="faction-name">Cobalt</strong></div>
+          <div class="score"><strong id="score-one">14</strong><span>TILES</span></div>
+        </div>
+        <div class="match-clock"><span class="micro" id="clock-label">MOCK / 001</span><div><strong id="blocks-left">67</strong><span id="clock-unit">BLOCKS<br>LEFT</span></div><div id="clock-track" class="clock-track" aria-hidden="true"><span id="clock-fill"></span></div></div>
+        <div class="competitor ember">
+          <svg class="crest" aria-hidden="true"><use href="#crest-two"/></svg>
+          <div><span class="micro" id="player-label-two">PLAYER 02</span><strong class="faction-name">Ember</strong></div>
+          <div class="score"><strong id="score-two">11</strong><span>TILES</span></div>
+        </div>
+      </section>
+
+      <section id="match-result" class="match-result" aria-labelledby="result-title" hidden>
+        <div class="result-emblem" aria-hidden="true"><svg id="result-crest"><use href="#crest-one"/></svg><svg id="draw-crest" hidden><use href="#crest-two"/></svg><span>BC / 001</span></div>
+        <div class="result-copy"><p id="result-kicker" class="eyebrow">VICTORY / PLAYER 01</p><h1 id="result-title">Cobalt holds the field.</h1><p id="result-detail">More territory at the deadline. The final board is yours to inspect.</p><span id="result-recorded" class="result-recorded" aria-live="polite">MOCK RESULT RECORDED</span><p id="result-territory" class="result-territory"></p><p id="result-feedback" class="result-feedback" role="status" hidden></p></div>
+        <div class="result-scores" aria-label="Final territory scores"><div class="cobalt"><svg aria-hidden="true"><use href="#crest-one"/></svg><span>Cobalt <small>You · P1</small></span><strong id="final-score-one">14</strong></div><div class="ember"><svg aria-hidden="true"><use href="#crest-two"/></svg><span>Ember <small>P2</small></span><strong id="final-score-two">11</strong></div><button id="record-result" class="button primary" hidden>Preview record result <svg aria-hidden="true"><use href="#arrow"/></svg></button></div>
+        <div class="result-provenance"><span>FINAL TILES = FINAL POINTS</span><span>MOCK MATCH · NO DEPLOYED CONTRACT</span><span>Explorer unavailable for mock data</span></div>
+      </section>
+
+      <div class="workspace">
+        <section class="board-region" aria-labelledby="board-title">
+          <div class="board-heading"><div><p class="eyebrow">THE FIELD / 8 × 8</p><h1 id="board-title">Make your ground.</h1></div><span class="board-count"><strong id="claimed-count">25</strong><span>OF 64<br>CLAIMED</span></span></div>
+          <div class="board-shell">
+            <div class="board-inner">
+              <span class="board-corner" aria-hidden="true">BC</span>
+              <div class="columns" aria-hidden="true"><span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>F</span><span>G</span><span>H</span></div>
+              <div class="rows" aria-hidden="true"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
+              <div class="play-area"><div id="board" class="board" role="group" aria-label="Mock territory board. Arrow keys move focus. Enter selects a tile." tabindex="-1"></div><svg id="attack-arrow" class="attack-arrow" aria-hidden="true" viewBox="0 0 800 800" hidden><defs><marker id="attack-head" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="5" markerHeight="5" orient="auto"><path d="M1 1 11 6 1 11Z" fill="#efcf7b" stroke="#182b3a" stroke-width="1.2"/></marker></defs><line id="attack-underlay"/><line id="attack-path" marker-end="url(#attack-head)"/></svg></div>
+            </div>
+            <div class="board-bottom"><span>EVERY SQUARE COUNTS.</span><span id="board-phase">CONTEST IN PROGRESS</span></div>
+          </div>
+          <div class="board-legend" aria-label="Board key"><span><i class="legend-tile vacant"></i>Empty</span><span><i class="legend-tile chosen"></i>Selected</span><span><i class="legend-tile eligible"></i>Attackable</span><span><i class="legend-tile pending-key"></i>Pending</span><span class="power-key">NUMBER = POWER</span></div>
+          <p id="board-hint" class="board-hint">An attack is lined up. Select another highlighted enemy or inspect your territory.</p>
+        </section>
+
+        <aside class="sidebar" aria-label="Territory inspector and ownership standings">
+          <section class="inspector" aria-labelledby="inspector-title">
+            <div class="inspector-top"><span class="eyebrow">TERRITORY & ACTIONS</span><span id="selected-coordinate" class="coordinate">D4 → E4</span></div>
+            <h2 id="inspector-title">Take their ground.</h2>
+            <p id="inspector-description" class="inspector-description">A stronger territory can capture its neighbour. Review the power cost before capturing.</p>
+            <div id="tile-information" class="tile-information">
+              <div class="tile-identity"><svg id="tile-crest" aria-hidden="true"><use href="#crest-one"/></svg><span id="tile-owner">Cobalt · You</span><strong id="tile-power">4 <span>/ 5 POWER</span></strong></div>
+              <dl><div><dt>Reinforcement</dt><dd id="tile-cooldown">Ready</dd></div><div><dt>Next power loss</dt><dd id="tile-decay">7 blocks</dd></div></dl>
+            </div>
+            <section id="attack-preview" class="attack-preview" aria-label="Estimated attack outcome">
+              <div class="preview-heading"><span>ATTACK ESTIMATE</span><span id="preview-route">D4 → E4</span></div>
+              <div class="combat-equation"><div><strong id="source-power">4</strong><span>YOUR POWER</span></div><b aria-hidden="true">−</b><div><strong id="target-power">2</strong><span>THEIR POWER</span></div><b aria-hidden="true">=</b><div><strong id="remaining-power">2</strong><span>SOURCE KEEPS</span></div></div>
+              <p class="capture-result"><svg aria-hidden="true"><use href="#crest-one"/></svg><span id="capture-result">E4 becomes yours with <strong>1 power.</strong></span></p>
+              <p class="estimate-note">Estimate only. In the live game, power and ownership can change before confirmation.</p>
+            </section>
+            <div id="desktop-dock-slot"><div id="action-dock" class="action-dock">
+              <span id="mobile-context" class="mobile-context">D4 → E4 · Estimate: 4 − 2 = 2 left</span>
+              <div class="action-buttons"><button id="primary-action" class="button primary">Preview capture E4 <svg aria-hidden="true"><use href="#arrow"/></svg></button><button id="secondary-action" class="button secondary">Cancel attack</button></div>
+              <div id="feedback" class="feedback" role="status" aria-live="polite" aria-atomic="true"><svg aria-hidden="true"><use id="feedback-icon" href="#claim-icon"/></svg><div><strong id="feedback-title">The field is open.</strong><p id="move-status" class="move-status">Mock board · Both players may act; no turn order.</p></div></div>
+            </div></div>
+          </section>
+
+          <section class="standings" aria-labelledby="standings-title">
+            <div class="standings-heading"><h2 id="standings-title">Territory held</h2><span>OF 64 TILES</span></div>
+            <ol id="leaderboard" class="leaderboard"></ol>
+            <div id="ownership-bar" class="ownership-bar" aria-hidden="true"><span class="cobalt-share"></span><span class="ember-share"></span></div>
+            <p class="standings-note"><span id="unclaimed-count">39</span> unclaimed. Every owned tile is one point.</p>
+          </section>
+          <details class="rules-summary"><summary>Field rules <span id="rules-summary">Cap 5 · Cooldown 3 blocks</span></summary><p id="rules-description"></p><p class="rules-provenance">Illustrative contract settings from this scene’s mock data. The real application must read these values from its deployed contract.</p></details>
+        </aside>
+      </div>
+
+      <footer class="prototype-footer">
+        <div class="footer-identity"><span class="footer-stamp">BC / C</span><p><strong>STANDARD BEARER / HYBRID</strong><a href="./review.html">Before & after comparison ↗</a></p></div>
+        <div class="study-controls" aria-label="Prototype controls"><label for="scene" class="micro">STUDY SCENE</label><select id="scene"><option value="midgame">Attack preview</option><option value="opening">Opening board</option><option value="claim">Claim territory</option><option value="reinforce">Reinforce territory</option><option value="failure">Failed action</option><option value="victory">Victory</option><option value="draw">Draw</option><option value="open">Earlier open board</option></select><button id="clock-toggle" class="study-button">Run mock clock</button><button id="reset" class="reset-button" aria-label="Reset mock board" title="Reset mock board"><svg aria-hidden="true"><use href="#icon-reset"/></svg></button></div>
+      </footer>
+      <label class="failure-toggle"><input id="fail-next" type="checkbox"> Fail the next mock action <span>Design-review control only; no transaction is sent.</span></label>
+      <p class="prototype-disclosure">An isolated design prototype. All players, blocks and moves are simulated locally. No wallet connection or blockchain transactions.</p>
+    </main>
+  </div>
+
+  <dialog id="field-guide" aria-labelledby="guide-title"><button id="guide-close" class="dialog-close" aria-label="Close field guide"><svg aria-hidden="true"><use href="#cross"/></svg></button><p class="eyebrow">THE FIELD GUIDE</p><h2 id="guide-title">A little ground.<br>A lot to play for.</h2><p id="guide-objective">Hold more territory when the block countdown ends. Equal scores mean a draw. <strong>Both players may act during the match; there is no turn order.</strong></p><ol><li><strong>Claim.</strong> Any empty tile becomes yours with 1 power.</li><li><strong>Build.</strong> Reinforce your tile to add 1 power, up to the cap.</li><li><strong>Capture.</strong> Attack a weaker enemy directly above, below, left or right. Your source pays their power. The captured tile starts at 1.</li></ol><div class="guide-prototype-note">This study uses a short mock pending state before applying local changes. No wallet or transaction is involved. The scene selector below the field includes an opening board, attack preview, victory and draw. The mock clock starts paused.</div></dialog>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
