@@ -31,7 +31,7 @@ Decay floors at power 1 and never removes ownership; empty tiles have power 0. C
 
 ## Features and technology
 
-- Survey Atlas interface with owner patterns, player labels, effective power, a match scoreboard and territory-share leaderboard counted from `getGrid()`.
+- Standard Bearer interface — “Every square counts.” — with Cobalt/Ember crests, owner patterns, player labels, effective power, a match scoreboard and territory-share leaderboard counted from `getGrid()`.
 - Match lobby, join/start transaction, block countdown, spectator view, winner/draw screen and result-recording transaction.
 - Attack estimates, cooldown/decay countdowns, transaction feedback, and refreshes on new blocks.
 - Wallet connection and Disconnect, account/network changes, keyboard navigation, mobile action row and reduced-motion support.
@@ -99,9 +99,9 @@ npm run test:ui
 npm run build
 ```
 
-The suite contains **90 contract tests**, **12 frontend logic tests** and **29 browser integration tests**. Contract coverage includes joining, permissions, exact deadline boundaries, either winner/draw, immutable final state, all original tile rules, long inactivity and attacks using both effective powers. Browser tests exercise full matches, spectators, rejection, late transactions, disconnect/reconnect and mobile reachability, alongside the open-board regressions.
+The suite contains **90 contract tests**, **14 frontend logic tests** and **38 browser integration tests**. Contract coverage includes joining, permissions, exact deadline boundaries, either winner/draw, immutable final state, all original tile rules, long inactivity and attacks using both effective powers. Browser tests exercise full matches, spectators, rejection, late transactions, disconnect/reconnect, zero-score participants, delayed/failed snapshot refreshes, recorded results and layouts at 360, 390, 430, 768, 1024 and 1440px, alongside the open-board regressions.
 
-All **131 tests**, typechecking, production build and development-server startup passed in a fresh local Git checkout on Windows. A live two-player MetaMask match also completed on Sepolia: both joins, claim, reinforcement, capture and finalization were observed, with the result independently checked.
+All **142 tests**, typechecking and the production build passed in a fresh local checkout with a clean `npm ci` installation on Windows. A live two-player MetaMask match also completed on Sepolia using the earlier interface: both joins, claim, reinforcement, capture and finalization were observed, with the result independently checked. The redesign preserves that deployed contract and its blockchain integration.
 
 Run `npm test` before typechecking to generate types. Browser tests need installed Chrome and free ports **8545/4173**. Set `PLAYWRIGHT_CHANNEL=msedge` to use installed Edge instead. Browser automation uses real local contracts and a test-only wallet adapter; it does not automate the MetaMask extension or submit public-network transactions. Validation details are in [docs/VALIDATION.md](docs/VALIDATION.md).
 
@@ -109,21 +109,21 @@ Run `npm test` before typechecking to generate types. Browser tests need install
 
 ## Screenshots
 
-Completed two-player match on **Ethereum Sepolia**, showing player 2's recorded 3–0 victory:
+Current **Standard Bearer** interface on **local Hardhat**, after a confirmed capture:
 
-![Sepolia match result showing Player 2 wins, final scores 0–3, and Result confirmed](docs/screenshots/sepolia-match-result.png)
-
-The [recorded Sepolia result](https://sepolia.etherscan.io/tx/0x874687427e1221263cf0a5d55ec697fb2d0f26fbb8eda130365128fb2764eb37) confirms player 2 won with 3 tiles to player 1's 0. The [capture transaction](https://sepolia.etherscan.io/tx/0xdd86633ffd4c8a030cf1a26555e33538294bc32cedac7e07cdc51fe95f95f654) records B1 → A1. Transaction details and final board ownership are in the [Sepolia match evidence](docs/MATCH_DEPLOYMENT.md).
-
-Two-player match on **local Hardhat**, after a capture:
-
-![Local two-player match with both scores, countdown and confirmed capture](docs/screenshots/match-active-local.png)
+![Standard Bearer local match with Cobalt and Ember scores, countdown, patterned territories and confirmed capture](docs/screenshots/match-active-local.png)
 
 Final result recorded on **local Hardhat**:
 
-![Local match with a recorded winner and locked final scores](docs/screenshots/match-result-local.png)
+![Standard Bearer recorded Cobalt victory with final scores and the locked board](docs/screenshots/match-result-local.png)
 
-[Mobile match lobby](docs/screenshots/match-lobby-mobile-local.png). These match screenshots are local tests, not Sepolia evidence.
+[Mobile Standard Bearer match lobby](docs/screenshots/match-lobby-mobile-local.png). These current-interface screenshots come from automated tests against real local contracts, using a test-only wallet adapter. They are not Sepolia evidence.
+
+Completed two-player match on **Ethereum Sepolia**, captured through real MetaMask **before the Standard Bearer redesign**, showing player 2's recorded 3–0 victory:
+
+![Earlier interface: real Sepolia match showing Player 2 wins, final scores 0–3, and Result confirmed](docs/screenshots/sepolia-match-result.png)
+
+The [recorded Sepolia result](https://sepolia.etherscan.io/tx/0x874687427e1221263cf0a5d55ec697fb2d0f26fbb8eda130365128fb2764eb37) confirms player 2 won with 3 tiles to player 1's 0. The [capture transaction](https://sepolia.etherscan.io/tx/0xdd86633ffd4c8a030cf1a26555e33538294bc32cedac7e07cdc51fe95f95f654) records B1 → A1. Transaction details and final board ownership are in the [Sepolia match evidence](docs/MATCH_DEPLOYMENT.md).
 
 ## Known limitations
 
