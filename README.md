@@ -121,7 +121,7 @@ Final result recorded on **local Hardhat**:
 
 Completed two-player match on **Ethereum Sepolia**, captured through real MetaMask **before the Standard Bearer redesign**, showing player 2's recorded 3–0 victory:
 
-![Earlier interface: real Sepolia match showing Player 2 wins, final scores 0–3, and Result confirmed](docs/screenshots/sepolia-match-result.png)
+![Earlier interface: real Sepolia match showing Player 2 wins, final scores 0–3, and Result confirmed(This was early test before redesigning UI](docs/screenshots/sepolia-match-result.png)
 
 The [recorded Sepolia result](https://sepolia.etherscan.io/tx/0x874687427e1221263cf0a5d55ec697fb2d0f26fbb8eda130365128fb2764eb37) confirms player 2 won with 3 tiles to player 1's 0. The [capture transaction](https://sepolia.etherscan.io/tx/0xdd86633ffd4c8a030cf1a26555e33538294bc32cedac7e07cdc51fe95f95f654) records B1 → A1. Transaction details and final board ownership are in the [Sepolia match evidence](docs/MATCH_DEPLOYMENT.md).
 
